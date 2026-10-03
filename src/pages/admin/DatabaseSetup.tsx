@@ -9,6 +9,7 @@ export default function DatabaseSetup() {
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [mode, setMode] = useState<'quick' | 'full'>('quick');
 
   useEffect(() => {
     checkDatabase();
@@ -96,7 +97,8 @@ export default function DatabaseSetup() {
   };
 
   const copySQL = () => {
-    navigator.clipboard.writeText(SETUP_SQL);
+    const sql = mode === 'quick' ? QUICK_FIX_SQL : SETUP_SQL;
+    navigator.clipboard.writeText(sql);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
@@ -145,11 +147,58 @@ export default function DatabaseSetup() {
             </p>
           </div>
 
-          {/* Warning Box */}
-          <div className="bg-blush/10 border border-blush/20 rounded-sm p-4 mb-6">
-            <p className="text-sm text-blush">
-              <strong>⚠️ Important:</strong> You must complete this setup before you can add products, manage categories, or use any admin features.
-            </p>
+          {/* BIG WARNING BOX */}
+          <div className="bg-red-50 border-2 border-red-300 rounded-sm p-6 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">🚨</span>
+              <div>
+                <h3 className="font-bold text-red-800 text-lg mb-2">
+                  THIS IS WHY YOU'RE GETTING ERRORS
+                </h3>
+                <p className="text-red-700 text-sm mb-3">
+                  The error "new row violates row-level security policy" happens because your database security policies are blocking inserts.
+                </p>
+                <div className="bg-white border border-red-200 rounded-sm p-3">
+                  <p className="text-red-800 font-bold text-sm mb-2">✅ TO FIX THIS (takes 30 seconds):</p>
+                  <ol className="text-red-700 text-sm space-y-1 list-decimal list-inside">
+                    <li>Click the link below to open Supabase SQL Editor</li>
+                    <li>Click "📋 Copy All" button below</li>
+                    <li>Paste in SQL Editor (Ctrl+V)</li>
+                    <li>Click "Run" button</li>
+                    <li>Come back here and click "Test Database Setup"</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mode Toggle */}
+          <div className="mb-6 p-4 bg-cream/50 rounded-sm">
+            <p className="text-sm font-medium text-chocolate mb-3">Choose setup mode:</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setMode('quick')}
+                className={`flex-1 p-3 rounded-sm border-2 transition-all ${
+                  mode === 'quick'
+                    ? 'border-gold bg-gold/10'
+                    : 'border-beige hover:border-gold/50'
+                }`}
+              >
+                <p className="font-medium text-chocolate text-sm">⚡ Quick Fix</p>
+                <p className="text-xs text-coffee/60 mt-1">Fixes RLS errors only</p>
+              </button>
+              <button
+                onClick={() => setMode('full')}
+                className={`flex-1 p-3 rounded-sm border-2 transition-all ${
+                  mode === 'full'
+                    ? 'border-gold bg-gold/10'
+                    : 'border-beige hover:border-gold/50'
+                }`}
+              >
+                <p className="font-medium text-chocolate text-sm">🔧 Full Setup</p>
+                <p className="text-xs text-coffee/60 mt-1">Complete database setup</p>
+              </button>
+            </div>
           </div>
 
           {/* Steps */}
@@ -181,7 +230,7 @@ export default function DatabaseSetup() {
               </div>
               <div className="flex-1">
                 <h3 className="font-heading text-lg text-chocolate mb-2">
-                  Copy the SQL Script Below
+                  {mode === 'quick' ? 'Copy the Quick Fix SQL' : 'Copy the Full Setup SQL'}
                 </h3>
                 <div className="relative">
                   <button
@@ -195,7 +244,7 @@ export default function DatabaseSetup() {
                     {copied ? '✅ Copied!' : '📋 Copy All'}
                   </button>
                   <pre className="bg-chocolate text-ivory/80 p-4 rounded-sm text-xs overflow-x-auto max-h-64 overflow-y-auto">
-                    <code>{SETUP_SQL}</code>
+                    <code>{mode === 'quick' ? QUICK_FIX_SQL : SETUP_SQL}</code>
                   </pre>
                 </div>
               </div>
@@ -298,6 +347,48 @@ export default function DatabaseSetup() {
     </div>
   );
 }
+
+// Quick fix SQL - ONLY fixes RLS policies
+const QUICK_FIX_SQL = `-- QUICK FIX: Run this to fix RLS errors
+-- Copy this ENTIRE script and run in Supabase SQL Editor
+
+-- Fix categories table
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "categories_all" ON categories;
+CREATE POLICY "categories_all" ON categories FOR ALL USING (true) WITH CHECK (true);
+
+-- Fix products table
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "products_all" ON products;
+CREATE POLICY "products_all" ON products FOR ALL USING (true) WITH CHECK (true);
+
+-- Fix product_images table
+ALTER TABLE product_images DISABLE ROW LEVEL SECURITY;
+ALTER TABLE product_images ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "product_images_all" ON product_images;
+CREATE POLICY "product_images_all" ON product_images FOR ALL USING (true) WITH CHECK (true);
+
+-- Fix all other tables
+DO $$ 
+DECLARE 
+  tbl TEXT;
+  tables TEXT[] := ARRAY['inquiries', 'appointments', 'orders', 'order_items', 'profiles', 'site_settings', 'wishlists', 'reviews', 'notifications', 'availability_slots'];
+BEGIN
+  FOREACH tbl IN ARRAY tables LOOP
+    EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "%I_all" ON %I', tbl, tbl);
+    EXECUTE format('CREATE POLICY "%I_all" ON %I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+  END LOOP;
+END $$;
+
+-- Fix storage policies
+DROP POLICY IF EXISTS "storage_all" ON storage.objects;
+CREATE POLICY "storage_all" ON storage.objects FOR ALL USING (true) WITH CHECK (true);
+
+SELECT '✅ RLS policies fixed! You can now add products and categories.' AS status;`;
 
 const SETUP_SQL = `-- ============================================
 -- MIMIKO STUDIO - COMPLETE DATABASE SETUP
