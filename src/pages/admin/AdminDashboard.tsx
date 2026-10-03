@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, MessageSquare, Calendar, ShoppingCart,
@@ -6,6 +6,7 @@ import {
   CheckCircle, Clock, AlertTriangle, TrendingUp, Users, Settings
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { useDashboardStats, useInquiries, useAppointments, useProducts } from '../../hooks/useData';
 
 type Tab = 'overview' | 'products' | 'inquiries' | 'appointments' | 'orders' | 'settings';
 
@@ -126,27 +127,110 @@ export default function AdminDashboard() {
 }
 
 function OverviewTab() {
-  const stats = [
-    { label: 'Total Products', value: '0', icon: <Package size={20} />, color: 'bg-champagne/10 text-champagne' },
-    { label: 'Active Inquiries', value: '0', icon: <MessageSquare size={20} />, color: 'bg-rosegold/10 text-rosegold' },
-    { label: 'Pending Appointments', value: '0', icon: <Calendar size={20} />, color: 'bg-sage/10 text-sage' },
-    { label: 'Total Orders', value: '0', icon: <ShoppingCart size={20} />, color: 'bg-blush/20 text-espresso' },
+  const { stats, loading } = useDashboardStats();
+  const { inquiries } = useInquiries();
+  const { appointments } = useAppointments();
+  const { products } = useProducts({ limit: 5 });
+
+  const statsCards = [
+    { label: 'Total Products', value: stats.totalProducts.toString(), icon: <Package size={20} />, color: 'bg-gold/10 text-gold' },
+    { label: 'Active Inquiries', value: stats.pendingInquiries.toString(), icon: <MessageSquare size={20} />, color: 'bg-blush/20 text-blush' },
+    { label: 'Pending Appointments', value: stats.newAppointments.toString(), icon: <Calendar size={20} />, color: 'bg-sage/10 text-sage' },
+    { label: 'Total Orders', value: stats.totalOrders.toString(), icon: <ShoppingCart size={20} />, color: 'bg-rose/10 text-rose' },
   ];
 
   return (
     <div>
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-pearl border border-beige/20 rounded-sm p-6">
-            <div className={`w-10 h-10 rounded-full ${stat.color} flex items-center justify-center mb-4`}>
-              {stat.icon}
-            </div>
-            <p className="text-2xl font-heading font-semibold text-espresso">{stat.value}</p>
-            <p className="text-xs font-label tracking-wider uppercase text-espresso/50 mt-1">{stat.label}</p>
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="spinner-luxury" />
+        </div>
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {statsCards.map((stat, i) => (
+              <div key={i} className="bg-pearl border border-beige/20 rounded-sm p-6">
+                <div className={`w-10 h-10 rounded-full ${stat.color} flex items-center justify-center mb-4`}>
+                  {stat.icon}
+                </div>
+                <p className="text-2xl font-heading font-semibold text-chocolate">{stat.value}</p>
+                <p className="text-xs font-label tracking-wider uppercase text-coffee/50 mt-1">{stat.label}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+
+          {/* Recent Inquiries */}
+          {inquiries.length > 0 && (
+            <div className="bg-pearl border border-beige/20 rounded-sm p-6 mb-8">
+              <h3 className="font-heading text-lg font-medium text-chocolate mb-4">💌 Recent Inquiries</h3>
+              <div className="space-y-3">
+                {inquiries.slice(0, 5).map(inquiry => (
+                  <div key={inquiry.id} className="flex items-center justify-between p-3 bg-ivory rounded-sm">
+                    <div>
+                      <p className="text-sm font-medium text-chocolate">{inquiry.customer_name}</p>
+                      <p className="text-xs text-coffee/50">{inquiry.reference_number} • {inquiry.product_type}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-sm ${
+                      inquiry.status === 'new' ? 'bg-gold/10 text-gold' :
+                      inquiry.status === 'under_review' ? 'bg-sky/10 text-sky' :
+                      'bg-sage/10 text-sage'
+                    }`}>
+                      {inquiry.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Appointments */}
+          {appointments.length > 0 && (
+            <div className="bg-pearl border border-beige/20 rounded-sm p-6 mb-8">
+              <h3 className="font-heading text-lg font-medium text-chocolate mb-4">📅 Upcoming Appointments</h3>
+              <div className="space-y-3">
+                {appointments.slice(0, 5).map(apt => (
+                  <div key={apt.id} className="flex items-center justify-between p-3 bg-ivory rounded-sm">
+                    <div>
+                      <p className="text-sm font-medium text-chocolate">{apt.customer_name}</p>
+                      <p className="text-xs text-coffee/50">{apt.appointment_date} at {apt.start_time}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-sm ${
+                      apt.status === 'requested' ? 'bg-gold/10 text-gold' :
+                      apt.status === 'confirmed' ? 'bg-sage/10 text-sage' :
+                      'bg-coffee/10 text-coffee'
+                    }`}>
+                      {apt.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Products */}
+          {products.length > 0 && (
+            <div className="bg-pearl border border-beige/20 rounded-sm p-6">
+              <h3 className="font-heading text-lg font-medium text-chocolate mb-4">🛍️ Recent Products</h3>
+              <div className="space-y-3">
+                {products.slice(0, 5).map(product => (
+                  <div key={product.id} className="flex items-center justify-between p-3 bg-ivory rounded-sm">
+                    <div>
+                      <p className="text-sm font-medium text-chocolate">{product.name}</p>
+                      <p className="text-xs text-coffee/50">₹{product.price.toLocaleString()} • Stock: {product.stock_quantity}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-sm ${
+                      product.is_published ? 'bg-sage/10 text-sage' : 'bg-coffee/10 text-coffee'
+                    }`}>
+                      {product.is_published ? 'Published' : 'Draft'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Quick Actions */}
       <div className="bg-pearl border border-beige/20 rounded-sm p-6 mb-8">

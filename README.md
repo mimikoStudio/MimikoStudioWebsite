@@ -54,6 +54,13 @@ Get these values from your Supabase project dashboard: **Settings → API**
 
 ### 3. Set Up Database
 
+**Option A: Use the built-in Database Setup page (Recommended)**
+1. Visit `#/db-setup` on your website
+2. Click "Test Connection" to verify Supabase is connected
+3. Copy the SQL migration and paste it into your [Supabase SQL Editor](https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql)
+4. Run the migration
+
+**Option B: Manual setup**
 1. Go to your Supabase dashboard → **SQL Editor**
 2. Copy the contents of `supabase/migrations/001_initial_schema.sql`
 3. Paste and run the SQL

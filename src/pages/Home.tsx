@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Palette, Gift, Heart, Star } from 'lucide-react';
 import { INSTAGRAM_URL } from '../lib/supabase';
+import { useProducts } from '../hooks/useData';
 
 const collections = [
   { title: 'Hand-Painted Clothing', desc: 'Wearable art that tells your story', emoji: '👗', gradient: 'from-blush/20 to-rose/10' },
@@ -18,12 +19,15 @@ const features = [
   { emoji: '🎁', title: 'Customizable', desc: 'Personalize any piece to match your style and preferences' },
 ];
 
-const newArrivals = [
-  { id: 1, name: 'Floral Paradise Tote', price: 1299, emoji: '👜', tag: 'New' },
-  { id: 2, name: 'Abstract Art Dupatta', price: 2499, emoji: '🧣', tag: 'New' },
-  { id: 3, name: 'Botanical Cushion Set', price: 1899, emoji: '🛋️', tag: 'New' },
-  { id: 4, name: 'Painted Denim Jacket', price: 3499, emoji: '🧥', tag: 'Bestseller' },
-];
+// Fetch real products from Supabase
+const { products: newArrivalsProducts, loading: loadingNewArrivals } = useProducts({ newArrival: true, limit: 4 });
+const { products: featuredProducts, loading: loadingFeatured } = useProducts({ featured: true, limit: 8 });
+
+// Check if database is set up
+const dbNotSetUp = !loadingNewArrivals && newArrivalsProducts.length === 0;
+
+// Fallback emojis for products
+const productEmojis = ['👜', '🧣', '🛋️', '🧥', '👗', '🎁', '👕', '🌸'];
 
 const testimonials = [
   { name: 'Priya S.', text: 'The hand-painted dupatta I ordered was absolutely stunning! Every detail was perfect.', rating: 5 },
@@ -34,6 +38,18 @@ const testimonials = [
 export default function Home() {
   return (
     <div className="overflow-hidden">
+      {/* Database Setup Banner */}
+      {dbNotSetUp && (
+        <div className="bg-gold/10 border-b border-gold/20 py-3 px-4 text-center">
+          <p className="text-sm text-chocolate">
+            ⚠️ Database not set up yet.{' '}
+            <Link to="/db-setup" className="text-gold underline font-medium hover:text-chocolate transition-colors">
+              Click here to set up your Supabase database →
+            </Link>
+          </p>
+        </div>
+      )}
+      
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center">
         <div className="absolute inset-0 bg-gradient-to-br from-chocolate via-coffee to-chocolate">
@@ -169,20 +185,36 @@ export default function Home() {
             <div className="gold-divider w-24 mx-auto mt-6" />
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {newArrivals.map(product => (
-              <div key={product.id} className="card-luxury group">
-                <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
-                  <span className="text-6xl product-image-hover">{product.emoji}</span>
-                  <span className="absolute top-3 left-3 badge-luxury bg-gold text-white">{product.tag}</span>
+          {loadingNewArrivals ? (
+            <div className="flex justify-center py-12">
+              <div className="spinner-luxury" />
+            </div>
+          ) : newArrivalsProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {newArrivalsProducts.map((product, idx) => (
+                <div key={product.id} className="card-luxury group">
+                  <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
+                    {product.images && product.images.length > 0 ? (
+                      <img src={product.images[0].image_url} alt={product.name} className="w-full h-full object-cover product-image-hover" />
+                    ) : (
+                      <span className="text-6xl product-image-hover">{productEmojis[idx % productEmojis.length]}</span>
+                    )}
+                    <span className="absolute top-3 left-3 badge-luxury bg-gold text-white">✨ New</span>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-heading text-lg font-medium text-chocolate mb-2">{product.name}</h3>
+                    <p className="text-lg font-medium text-chocolate">₹{(product.sale_price || product.price).toLocaleString()}</p>
+                  </div>
                 </div>
-                <div className="p-5">
-                  <h3 className="font-heading text-lg font-medium text-chocolate mb-2">{product.name}</h3>
-                  <p className="text-lg font-medium text-chocolate">₹{product.price.toLocaleString()}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <span className="text-5xl block mb-4">✨</span>
+              <p className="text-coffee/60 text-lg">New arrivals coming soon!</p>
+              <p className="text-coffee/40 text-sm mt-2">Check back shortly for our latest handcrafted creations.</p>
+            </div>
+          )}
           
           <div className="text-center mt-12">
             <Link to="/shop" className="btn-secondary">

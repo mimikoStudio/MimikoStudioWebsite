@@ -1,16 +1,29 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { useCategories } from '../hooks/useData';
 
-const categories = [
-  { name: 'Hand-Painted Clothing', slug: 'clothing', desc: 'T-shirts, kurtis, sarees, dupattas, denim jackets & more', emoji: '👗', count: 24 },
-  { name: 'Designer Bags', slug: 'bags', desc: 'Tote bags, canvas bags, sling bags, pouches & laptop sleeves', emoji: '👜', count: 18 },
-  { name: 'Home Decor', slug: 'home-decor', desc: 'Cushion covers, table runners, wall hangings & more', emoji: '🏡', count: 15 },
-  { name: 'Fashion Accessories', slug: 'accessories', desc: 'Hand-painted shoes, caps, scarves & headbands', emoji: '🌸', count: 12 },
-  { name: 'Personalized Gifts', slug: 'gifts', desc: 'Custom gift bags, aprons, bookmarks & pouches', emoji: '🎁', count: 20 },
-  { name: 'Small Creations', slug: 'small-creations', desc: 'Scrunchies, hair bows, fabric earrings & keychains', emoji: '🧵', count: 30 },
+const categoryEmojis: Record<string, string> = {
+  'clothing': '👗',
+  'bags': '👜',
+  'home-decor': '🏡',
+  'accessories': '🌸',
+  'gifts': '🎁',
+  'small-creations': '🧵',
+};
+
+const defaultCategories = [
+  { id: '1', name: 'Hand-Painted Clothing', slug: 'clothing', description: 'T-shirts, kurtis, sarees, dupattas, denim jackets & more', image_url: '', display_order: 1, is_active: true, created_at: '', updated_at: '' },
+  { id: '2', name: 'Designer Bags', slug: 'bags', description: 'Tote bags, canvas bags, sling bags, pouches & laptop sleeves', image_url: '', display_order: 2, is_active: true, created_at: '', updated_at: '' },
+  { id: '3', name: 'Home Decor', slug: 'home-decor', description: 'Cushion covers, table runners, wall hangings & more', image_url: '', display_order: 3, is_active: true, created_at: '', updated_at: '' },
+  { id: '4', name: 'Fashion Accessories', slug: 'accessories', description: 'Hand-painted shoes, caps, scarves & headbands', image_url: '', display_order: 4, is_active: true, created_at: '', updated_at: '' },
+  { id: '5', name: 'Personalized Gifts', slug: 'gifts', description: 'Custom gift bags, aprons, bookmarks & pouches', image_url: '', display_order: 5, is_active: true, created_at: '', updated_at: '' },
+  { id: '6', name: 'Small Creations', slug: 'small-creations', description: 'Scrunchies, hair bows, fabric earrings & keychains', image_url: '', display_order: 6, is_active: true, created_at: '', updated_at: '' },
 ];
 
 export default function Collections() {
+  const { categories, loading } = useCategories();
+  const displayCategories = categories.length > 0 ? categories : defaultCategories;
+
   return (
     <div className="pt-20">
       {/* Hero */}
@@ -33,25 +46,32 @@ export default function Collections() {
       {/* Collections Grid */}
       <section className="py-24 bg-ivory">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map((cat, i) => (
-              <Link
-                key={cat.slug}
-                to="/shop"
-                className="card-luxury group p-10 flex flex-col items-center text-center"
-              >
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cream to-beige/30 flex items-center justify-center mb-6 group-hover:from-gold/15 group-hover:to-gold/5 transition-all duration-500 shadow-sm">
-                  <span className="text-4xl group-hover:scale-110 transition-transform duration-500">{cat.emoji}</span>
-                </div>
-                <h3 className="font-heading text-2xl font-medium text-chocolate mb-3">{cat.name}</h3>
-                <p className="text-sm text-coffee/60 mb-4">{cat.desc}</p>
-                <span className="text-xs text-gold font-label tracking-wider">{cat.count} pieces</span>
-                <div className="mt-4 flex items-center gap-2 text-xs font-label tracking-[0.15em] uppercase text-gold opacity-0 group-hover:opacity-100 transition-opacity">
-                  View Collection <ArrowRight size={12} />
-                </div>
-              </Link>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="spinner-luxury" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {displayCategories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  to="/shop"
+                  className="card-luxury group p-10 flex flex-col items-center text-center"
+                >
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cream to-beige/30 flex items-center justify-center mb-6 group-hover:from-gold/15 group-hover:to-gold/5 transition-all duration-500 shadow-sm">
+                    <span className="text-4xl group-hover:scale-110 transition-transform duration-500">
+                      {categoryEmojis[cat.slug] || '✨'}
+                    </span>
+                  </div>
+                  <h3 className="font-heading text-2xl font-medium text-chocolate mb-3">{cat.name}</h3>
+                  <p className="text-sm text-coffee/60 mb-4">{cat.description}</p>
+                  <div className="mt-4 flex items-center gap-2 text-xs font-label tracking-[0.15em] uppercase text-gold opacity-0 group-hover:opacity-100 transition-opacity">
+                    View Collection <ArrowRight size={12} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

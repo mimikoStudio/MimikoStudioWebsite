@@ -2,46 +2,31 @@ import { useState } from 'react';
 import { Search, SlidersHorizontal, Heart, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { createWhatsAppLink } from '../lib/supabase';
+import { useProducts, useCategories } from '../hooks/useData';
 
-const sampleProducts = [
-  { id: '1', name: 'Floral Hand-Painted Tote', category: 'Bags', price: 1299, salePrice: 999, colors: ['Natural', 'Blush'], emoji: '👜', isNew: true, isFeatured: true },
-  { id: '2', name: 'Abstract Art Dupatta', category: 'Clothing', price: 2499, salePrice: null, colors: ['Ivory', 'Sage'], emoji: '🧣', isNew: false, isFeatured: true },
-  { id: '3', name: 'Botanical Cushion Cover Set', category: 'Home Decor', price: 1899, salePrice: 1499, colors: ['White', 'Beige'], emoji: '🛋️', isNew: true, isFeatured: false },
-  { id: '4', name: 'Personalized Name T-Shirt', category: 'Clothing', price: 899, salePrice: null, colors: ['White', 'Black', 'Navy'], emoji: '👕', isNew: false, isFeatured: true },
-  { id: '5', name: 'Hand-Painted Denim Jacket', category: 'Clothing', price: 3499, salePrice: 2999, colors: ['Blue', 'Black'], emoji: '🧥', isNew: true, isFeatured: true },
-  { id: '6', name: 'Fabric Scrunchie Set', category: 'Small Creations', price: 499, salePrice: null, colors: ['Multi'], emoji: '🎀', isNew: false, isFeatured: false },
-  { id: '7', name: 'Custom Gift Bag Collection', category: 'Gifts', price: 799, salePrice: 599, colors: ['Gold', 'Rose'], emoji: '🎁', isNew: true, isFeatured: false },
-  { id: '8', name: 'Painted Canvas Sneakers', category: 'Accessories', price: 2199, salePrice: null, colors: ['White'], emoji: '👟', isNew: false, isFeatured: true },
-  { id: '9', name: 'Table Runner - Floral', category: 'Home Decor', price: 1599, salePrice: 1299, colors: ['Cream', 'Sage'], emoji: '🌸', isNew: false, isFeatured: false },
-  { id: '10', name: 'Laptop Sleeve - Abstract', category: 'Bags', price: 1799, salePrice: null, colors: ['Grey', 'Navy'], emoji: '💼', isNew: true, isFeatured: false },
-  { id: '11', name: 'Hand-Painted Saree', category: 'Clothing', price: 4999, salePrice: 3999, colors: ['Red', 'Blue', 'Green'], emoji: '🥻', isNew: false, isFeatured: true },
-  { id: '12', name: 'Fabric Brooch Collection', category: 'Small Creations', price: 399, salePrice: null, colors: ['Multi'], emoji: '💎', isNew: true, isFeatured: false },
-];
-
-const categories = ['All', '👗 Clothing', '👜 Bags', '🏡 Home Decor', '🌸 Accessories', '🎁 Gifts', '🧵 Small Creations'];
 const sortOptions = ['✨ Featured', '💰 Price: Low to High', '💰 Price: High to Low', '🆕 Newest'];
 
+const productEmojis = ['👜', '🧣', '🛋️', '🧥', '👗', '🎁', '👕', '🌸', '💼', '🥻', '💎', '🎀'];
+
 export default function Shop() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('✨ Featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const { addItem, toggleWishlist, isInWishlist } = useCart();
+  
+  const { categories } = useCategories();
+  const { products, loading } = useProducts({
+    category: selectedCategory !== 'all' ? selectedCategory : undefined,
+    search: searchQuery || undefined,
+  });
 
-  const categoryMap: Record<string, string> = {
-    '👗 Clothing': 'Clothing', '👜 Bags': 'Bags', '🏡 Home Decor': 'Home Decor',
-    '🌸 Accessories': 'Accessories', '🎁 Gifts': 'Gifts', '🧵 Small Creations': 'Small Creations'
-  };
-
-  const filteredProducts = sampleProducts
-    .filter(p => selectedCategory === 'All' || p.category === categoryMap[selectedCategory])
-    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy.includes('Low to High')) return a.price - b.price;
-      if (sortBy.includes('High to Low')) return b.price - a.price;
-      if (sortBy.includes('Newest')) return b.isNew ? 1 : -1;
-      return b.isFeatured ? 1 : -1;
-    });
+  const sortedProducts = [...products].sort((a, b) => {
+    if (sortBy.includes('Low to High')) return a.price - b.price;
+    if (sortBy.includes('High to Low')) return b.price - a.price;
+    if (sortBy.includes('Newest')) return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+  });
 
   return (
     <div className="pt-20">
@@ -94,40 +79,63 @@ export default function Shop() {
 
           {/* Category Pills */}
           <div className={`flex flex-wrap gap-2 mb-12 ${showFilters ? 'block' : 'hidden lg:flex'}`}>
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-4 py-2 text-xs font-label tracking-wider uppercase rounded-sm border transition-all duration-300 ${
+                selectedCategory === 'all'
+                  ? 'bg-gold border-gold text-white'
+                  : 'border-beige text-coffee/60 hover:border-gold hover:text-gold'
+              }`}
+            >
+              All
+            </button>
             {categories.map(cat => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
                 className={`px-4 py-2 text-xs font-label tracking-wider uppercase rounded-sm border transition-all duration-300 ${
-                  selectedCategory === cat
+                  selectedCategory === cat.id
                     ? 'bg-gold border-gold text-white'
                     : 'border-beige text-coffee/60 hover:border-gold hover:text-gold'
                 }`}
               >
-                {cat}
+                {cat.name}
               </button>
             ))}
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center py-20">
+              <div className="spinner-luxury" />
+            </div>
+          )}
+
           {/* Products Grid */}
-          {filteredProducts.length === 0 ? (
+          {!loading && sortedProducts.length === 0 && (
             <div className="text-center py-20">
               <span className="text-5xl block mb-4">🔍</span>
               <p className="text-coffee/40 text-lg">No products found matching your criteria.</p>
-              <button onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }} className="btn-secondary mt-6">
+              <button onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }} className="btn-secondary mt-6">
                 View All Products
               </button>
             </div>
-          ) : (
+          )}
+
+          {!loading && sortedProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map(product => (
+              {sortedProducts.map((product, idx) => (
                 <div key={product.id} className="card-luxury group">
                   <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
-                    <span className="text-6xl product-image-hover">{product.emoji}</span>
-                    {product.isNew && (
+                    {product.images && product.images.length > 0 ? (
+                      <img src={product.images[0].image_url} alt={product.name} className="w-full h-full object-cover product-image-hover" />
+                    ) : (
+                      <span className="text-6xl product-image-hover">{productEmojis[idx % productEmojis.length]}</span>
+                    )}
+                    {product.is_new_arrival && (
                       <span className="absolute top-3 left-3 badge-luxury bg-gold text-white">✨ New</span>
                     )}
-                    {product.salePrice && (
+                    {product.sale_price && (
                       <span className="absolute top-3 right-3 badge-luxury bg-blush text-white">🌷 Sale</span>
                     )}
                     <div className="absolute inset-0 bg-chocolate/0 group-hover:bg-chocolate/10 transition-all duration-300 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
@@ -139,7 +147,7 @@ export default function Shop() {
                         <Heart size={16} className={isInWishlist(product.id) ? 'fill-blush text-blush' : ''} />
                       </button>
                       <button
-                        onClick={() => addItem({ ...product, slug: product.name.toLowerCase().replace(/\s/g, '-'), description: '', stock_quantity: 10, material: 'Cotton', sizes: [], colors: product.colors, customization_available: true, is_featured: product.isFeatured, is_new_arrival: product.isNew, is_published: true, category_id: '', created_at: '', updated_at: '' } as any, 1)}
+                        onClick={() => addItem(product, 1)}
                         className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-luxury hover:bg-gold hover:text-white transition-all"
                         aria-label="Add to cart"
                       >
@@ -148,25 +156,29 @@ export default function Shop() {
                     </div>
                   </div>
                   <div className="p-5">
-                    <p className="text-[10px] font-label tracking-[0.15em] uppercase text-gold mb-1">{product.category}</p>
+                    <p className="text-[10px] font-label tracking-[0.15em] uppercase text-gold mb-1">
+                      {product.category?.name || 'Fabric Art'}
+                    </p>
                     <h3 className="font-heading text-lg font-medium text-chocolate mb-2 line-clamp-1">{product.name}</h3>
                     <div className="flex items-center gap-2">
-                      {product.salePrice ? (
+                      {product.sale_price ? (
                         <>
-                          <span className="text-lg font-medium text-chocolate">₹{product.salePrice.toLocaleString()}</span>
+                          <span className="text-lg font-medium text-chocolate">₹{product.sale_price.toLocaleString()}</span>
                           <span className="text-sm text-coffee/40 line-through">₹{product.price.toLocaleString()}</span>
                         </>
                       ) : (
                         <span className="text-lg font-medium text-chocolate">₹{product.price.toLocaleString()}</span>
                       )}
                     </div>
-                    <div className="flex gap-1 mt-3">
-                      {product.colors.map(color => (
-                        <span key={color} className="text-[10px] px-2 py-0.5 bg-cream/50 rounded text-coffee/60">{color}</span>
-                      ))}
-                    </div>
+                    {product.colors && product.colors.length > 0 && (
+                      <div className="flex gap-1 mt-3">
+                        {product.colors.slice(0, 3).map((color: string) => (
+                          <span key={color} className="text-[10px] px-2 py-0.5 bg-cream/50 rounded text-coffee/60">{color}</span>
+                        ))}
+                      </div>
+                    )}
                     <a
-                      href={createWhatsAppLink(`Hi! I'm interested in: ${product.name} (₹${product.salePrice || product.price})`)}
+                      href={createWhatsAppLink(`Hi! I'm interested in: ${product.name} (₹${product.sale_price || product.price})`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-4 w-full block text-center text-xs font-label tracking-wider uppercase text-gold border border-gold/30 py-2 rounded-sm hover:bg-gold hover:text-white transition-all"

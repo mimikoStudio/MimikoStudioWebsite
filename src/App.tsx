@@ -14,6 +14,7 @@ import Contact from './pages/Contact';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SetupGuide from './pages/SetupGuide';
+import DatabaseSetup from './pages/DatabaseSetup';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/setup" element={<SetupGuide />} />
+            <Route path="/db-setup" element={<DatabaseSetup />} />
             <Route
               path="/*"
               element={

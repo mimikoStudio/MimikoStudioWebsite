@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Upload, Palette, CheckCircle, MessageCircle, Eye } from 'lucide-react';
-import { createWhatsAppLink, generateReferenceNumber } from '../lib/supabase';
+import { createWhatsAppLink, generateReferenceNumber, isSupabaseConfigured } from '../lib/supabase';
+import { submitInquiry } from '../lib/dataService';
 
 const designStyles = [
   { value: 'Floral', emoji: '🌸' },
@@ -53,11 +54,48 @@ export default function CustomCreations() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError('');
+    
     const ref = generateReferenceNumber('CUS');
-    setReferenceNumber(ref);
-    setSubmitted(true);
+    
+    // Prepare inquiry data
+    const inquiryData = {
+      reference_number: ref,
+      customer_name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      product_category: formData.productCategory,
+      product_type: formData.productType,
+      fabric_preference: formData.fabricPreference,
+      preferred_colors: formData.preferredColors,
+      design_style: formData.designStyle,
+      custom_text: formData.customText,
+      size: formData.size,
+      quantity: parseInt(formData.quantity) || 1,
+      budget: formData.budget,
+      preferred_date: formData.preferredDate || null,
+      reference_image_urls: imagePreview ? [imagePreview] : [],
+      instructions: formData.instructions,
+      status: 'new' as const,
+    };
+
+    // Submit to Supabase
+    const result = await submitInquiry(inquiryData);
+    
+    if (result.success) {
+      setReferenceNumber(result.referenceNumber || ref);
+      setSubmitted(true);
+    } else {
+      setSubmitError(result.error || 'Failed to submit. Please try again.');
+    }
+    
+    setSubmitting(false);
   };
 
   if (submitted) {

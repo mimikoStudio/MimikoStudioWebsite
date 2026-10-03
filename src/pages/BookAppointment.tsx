@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calendar, Clock, CheckCircle, MessageCircle } from 'lucide-react';
 import { createWhatsAppLink, generateReferenceNumber } from '../lib/supabase';
+import { submitAppointment } from '../lib/dataService';
 
 const appointmentTypes = [
   { value: 'custom_design_consultation', label: 'Custom Design Consultation', emoji: '🎨' },
@@ -26,11 +27,50 @@ export default function BookAppointment() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError('');
+    
     const ref = generateReferenceNumber('APT');
-    setReferenceNumber(ref);
-    setSubmitted(true);
+    
+    // Parse time to create end_time (1 hour after start)
+    const startTime = formData.time;
+    const [hourStr, period] = startTime.split(' ');
+    let hour = parseInt(hourStr.split(':')[0]);
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    const endHour = hour + 1;
+    const endTime = `${endHour > 12 ? endHour - 12 : endHour}:00 ${endHour >= 12 ? 'PM' : 'AM'}`;
+    
+    const appointmentData = {
+      reference_number: ref,
+      customer_name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      appointment_type: formData.appointmentType,
+      appointment_date: formData.date,
+      start_time: startTime,
+      end_time: endTime,
+      project_description: formData.description,
+      reference_image_urls: [],
+      communication_method: formData.communicationMethod,
+      status: 'requested' as const,
+    };
+
+    const result = await submitAppointment(appointmentData);
+    
+    if (result.success) {
+      setReferenceNumber(result.referenceNumber || ref);
+      setSubmitted(true);
+    } else {
+      setSubmitError(result.error || 'Failed to submit. Please try again.');
+    }
+    
+    setSubmitting(false);
   };
 
   const tomorrow = new Date();
