@@ -25,6 +25,41 @@ A premium, luxury-inspired website for Mimiko Studio — a handmade fabric paint
 - **Forms:** React Hook Form, Zod validation
 - **Deployment:** GitHub Pages, GitHub Actions
 
+## 🚀 Quick Deploy to GitHub Pages
+
+Your Supabase credentials are already configured! Just follow these steps:
+
+### 1. Push to GitHub
+```bash
+git init
+git add .
+git commit -m "Initial commit: Mimiko Studio"
+git remote add origin https://github.com/YOUR_USERNAME/mimiko-studio.git
+git branch -M main
+git push -u origin main
+```
+
+### 2. Add GitHub Secrets
+Go to **Settings → Secrets and variables → Actions** and add:
+
+| Secret Name | Value |
+|-------------|-------|
+| `VITE_SUPABASE_URL` | `https://zshfxzdtosfvtngctftn.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzaGZ4emR0b3NmdnRuZ2N0ZnRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMTAyMDgsImV4cCI6MjEwNjU4NjIwOH0.wCwcfECDKX7IrwKp2hR8lrWhMXJLdteyjf3pFcMojc0` |
+
+### 3. Enable GitHub Pages
+Go to **Settings → Pages** → Source: **GitHub Actions**
+
+### 4. Update Base Path
+Edit `vite.config.js` line 8 — change `/mimiko-studio/` to your repo name.
+
+### 5. Set Up Database
+Visit `https://YOUR_USERNAME.github.io/mimiko-studio/#/db-setup` after deployment.
+
+📖 **Full deployment guide:** [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
 ## 📋 Prerequisites
 
 - Node.js 18+ and npm
