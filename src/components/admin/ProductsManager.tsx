@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
 import { useProducts, useCategories } from '../../hooks/useData';
+import ImageUpload from './ImageUpload';
 
 export default function ProductsManager() {
   const { products, loading, refetch } = useProducts();
@@ -24,7 +25,36 @@ export default function ProductsManager() {
     is_featured: false,
     is_new_arrival: false,
     is_published: false,
+    images: [] as string[],
   });
+
+  useEffect(() => {
+    if (editingProduct) {
+      // Load existing product images
+      loadProductImages(editingProduct.id);
+    }
+  }, [editingProduct]);
+
+  const loadProductImages = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('product_images')
+        .select('image_url')
+        .eq('product_id', productId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          images: data.map((img: any) => img.image_url)
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading product images:', error);
+    }
+  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -34,27 +64,47 @@ export default function ProductsManager() {
     e.preventDefault();
     
     const productData = {
-      ...formData,
+      name: formData.name,
+      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+      description: formData.description,
       price: parseFloat(formData.price),
       sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
       stock_quantity: parseInt(formData.stock_quantity),
+      category_id: formData.category_id || null,
+      material: formData.material,
       sizes: formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
       colors: formData.colors.split(',').map(c => c.trim()).filter(Boolean),
-      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+      customization_available: formData.customization_available,
+      is_featured: formData.is_featured,
+      is_new_arrival: formData.is_new_arrival,
+      is_published: formData.is_published,
     };
 
     try {
+      let productId: string;
+
       if (editingProduct) {
+        // Update product
         const { error } = await supabase
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
         if (error) throw error;
+        productId = editingProduct.id;
       } else {
-        const { error } = await supabase.from('products').insert([productData]);
+        // Insert product
+        const { data, error } = await supabase
+          .from('products')
+          .insert([productData])
+          .select()
+          .single();
         if (error) throw error;
+        productId = data.id;
       }
-      
+
+      // Update product images
+      await updateProductImages(productId, formData.images);
+
       setShowForm(false);
       setEditingProduct(null);
       resetForm();
@@ -64,7 +114,35 @@ export default function ProductsManager() {
     }
   };
 
-  const handleEdit = (product: any) => {
+  const updateProductImages = async (productId: string, imageUrls: string[]) => {
+    try {
+      // Delete existing images
+      await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', productId);
+
+      // Insert new images
+      if (imageUrls.length > 0) {
+        const imageRecords = imageUrls.map((url, index) => ({
+          product_id: productId,
+          image_url: url,
+          alt_text: `Product image ${index + 1}`,
+          display_order: index,
+        }));
+
+        const { error } = await supabase
+          .from('product_images')
+          .insert(imageRecords);
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error updating product images:', error);
+    }
+  };
+
+  const handleEdit = async (product: any) => {
     setEditingProduct(product);
     setFormData({
       name: product.name || '',
@@ -81,6 +159,7 @@ export default function ProductsManager() {
       is_featured: product.is_featured || false,
       is_new_arrival: product.is_new_arrival || false,
       is_published: product.is_published || false,
+      images: [], // Will be loaded in useEffect
     });
     setShowForm(true);
   };
@@ -89,6 +168,10 @@ export default function ProductsManager() {
     if (!confirm('Are you sure you want to delete this product?')) return;
     
     try {
+      // Delete product images first
+      await supabase.from('product_images').delete().eq('product_id', id);
+      
+      // Delete product
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
       refetch();
@@ -113,6 +196,7 @@ export default function ProductsManager() {
       is_featured: false,
       is_new_arrival: false,
       is_published: false,
+      images: [],
     });
   };
 
@@ -166,9 +250,22 @@ export default function ProductsManager() {
               {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-cream/30 transition-colors">
                   <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-chocolate">{product.name}</p>
-                      <p className="text-xs text-coffee/50">{product.slug}</p>
+                    <div className="flex items-center gap-3">
+                      {product.images && product.images.length > 0 ? (
+                        <img
+                          src={product.images[0].image_url}
+                          alt={product.name}
+                          className="w-12 h-12 object-cover rounded-sm"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-cream/50 rounded-sm flex items-center justify-center">
+                          <span className="text-2xl">📦</span>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-chocolate">{product.name}</p>
+                        <p className="text-xs text-coffee/50">{product.slug}</p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-coffee/70">
@@ -225,40 +322,45 @@ export default function ProductsManager() {
       {/* Product Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-chocolate/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-pearl rounded-sm max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-pearl rounded-sm max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-beige/20">
               <h3 className="text-xl font-heading text-chocolate">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </h3>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Product Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="input-luxury"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Slug
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    className="input-luxury"
-                    placeholder="auto-generated if empty"
-                  />
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Basic Info */}
+              <div>
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Basic Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Product Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="input-luxury"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Slug
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      className="input-luxury"
+                      placeholder="auto-generated if empty"
+                    />
+                  </div>
                 </div>
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
                   Description
@@ -271,141 +373,165 @@ export default function ProductsManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="input-luxury"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Sale Price (₹)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.sale_price}
-                    onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
-                    className="input-luxury"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Stock Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                    className="input-luxury"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={formData.category_id}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="select-luxury"
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Material
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.material}
-                    onChange={(e) => setFormData({ ...formData, material: e.target.value })}
-                    className="input-luxury"
-                  />
+              {/* Pricing */}
+              <div>
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Pricing & Inventory</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      className="input-luxury"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Sale Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.sale_price}
+                      onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
+                      className="input-luxury"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Stock Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.stock_quantity}
+                      onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                      className="input-luxury"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Sizes (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sizes}
-                    onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
-                    className="input-luxury"
-                    placeholder="S, M, L, XL"
-                  />
+              {/* Category & Details */}
+              <div>
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Product Details</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={formData.category_id}
+                      onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                      className="select-luxury"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Material
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.material}
+                      onChange={(e) => setFormData({ ...formData, material: e.target.value })}
+                      className="input-luxury"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                    Colors (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.colors}
-                    onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
-                    className="input-luxury"
-                    placeholder="Red, Blue, Green"
-                  />
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Sizes (comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sizes}
+                      onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                      className="input-luxury"
+                      placeholder="S, M, L, XL"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Colors (comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.colors}
+                      onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                      className="input-luxury"
+                      placeholder="Red, Blue, Green"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.customization_available}
-                    onChange={(e) => setFormData({ ...formData, customization_available: e.target.checked })}
-                    className="accent-gold"
-                  />
-                  <span className="text-sm text-coffee/70">Customization Available</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_featured}
-                    onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                    className="accent-gold"
-                  />
-                  <span className="text-sm text-coffee/70">Featured Product</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_new_arrival}
-                    onChange={(e) => setFormData({ ...formData, is_new_arrival: e.target.checked })}
-                    className="accent-gold"
-                  />
-                  <span className="text-sm text-coffee/70">New Arrival</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_published}
-                    onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
-                    className="accent-gold"
-                  />
-                  <span className="text-sm text-coffee/70">Published</span>
-                </label>
+              {/* Images */}
+              <div>
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Product Images</h4>
+                <ImageUpload
+                  value={formData.images}
+                  onChange={(urls) => setFormData({ ...formData, images: urls })}
+                  bucket="product-images"
+                  maxFiles={5}
+                />
               </div>
 
-              <div className="flex gap-4 pt-4 border-t border-beige/20">
+              {/* Options */}
+              <div>
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Options</h4>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.customization_available}
+                      onChange={(e) => setFormData({ ...formData, customization_available: e.target.checked })}
+                      className="accent-gold"
+                    />
+                    <span className="text-sm text-coffee/70">Customization Available</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_featured}
+                      onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                      className="accent-gold"
+                    />
+                    <span className="text-sm text-coffee/70">Featured Product</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_new_arrival}
+                      onChange={(e) => setFormData({ ...formData, is_new_arrival: e.target.checked })}
+                      className="accent-gold"
+                    />
+                    <span className="text-sm text-coffee/70">New Arrival</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_published}
+                      onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                      className="accent-gold"
+                    />
+                    <span className="text-sm text-coffee/70">Published</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4 pt-6 border-t border-beige/20">
                 <button type="submit" className="btn-primary flex-1">
                   {editingProduct ? 'Update Product' : 'Create Product'}
                 </button>
