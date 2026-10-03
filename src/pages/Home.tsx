@@ -19,13 +19,6 @@ const features = [
   { emoji: '🎁', title: 'Customizable', desc: 'Personalize any piece to match your style and preferences' },
 ];
 
-// Fetch real products from Supabase
-const { products: newArrivalsProducts, loading: loadingNewArrivals } = useProducts({ newArrival: true, limit: 4 });
-const { products: featuredProducts, loading: loadingFeatured } = useProducts({ featured: true, limit: 8 });
-
-// Check if database is set up
-const dbNotSetUp = !loadingNewArrivals && newArrivalsProducts.length === 0;
-
 // Fallback emojis for products
 const productEmojis = ['👜', '🧣', '🛋️', '🧥', '👗', '🎁', '👕', '🌸'];
 
@@ -36,6 +29,13 @@ const testimonials = [
 ];
 
 export default function Home() {
+  // Fetch real products from Supabase
+  const { products: newArrivalsProducts, loading: loadingNewArrivals } = useProducts({ newArrival: true, limit: 4 });
+  const { products: featuredProducts, loading: loadingFeatured } = useProducts({ featured: true, limit: 8 });
+
+  // Check if database is set up
+  const dbNotSetUp = !loadingNewArrivals && newArrivalsProducts.length === 0;
+
   return (
     <div className="overflow-hidden">
       {/* Database Setup Banner */}
