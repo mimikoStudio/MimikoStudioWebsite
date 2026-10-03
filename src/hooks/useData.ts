@@ -80,30 +80,30 @@ export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetch() {
-      if (!isSupabaseConfigured) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('is_active', true)
-          .order('display_order', { ascending: true });
-        
-        if (!error && data) setCategories(data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchCategories = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
     }
-    fetch();
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('display_order', { ascending: true });
+      
+      if (!error && data) setCategories(data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { categories, loading };
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  return { categories, loading, refetch: fetchCategories };
 }
 
 // ============================================
