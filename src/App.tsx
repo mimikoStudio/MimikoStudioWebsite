@@ -25,6 +25,7 @@ function App() {
           <div className="min-h-screen flex flex-col bg-ivory">
             <Routes>
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/setup" element={<DatabaseSetup />} />
               <Route path="/admin/*" element={<AdminDashboard />} />
               <Route path="/setup" element={<SetupGuide />} />
               <Route path="/db-setup" element={<DatabaseSetup />} />
