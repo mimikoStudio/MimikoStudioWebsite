@@ -34,9 +34,13 @@ jobs:
         run: npm run typecheck
         continue-on-error: true
 
+      - name: Get repository name
+        id: repo-name
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+
       - name: Build
         env:
-          GITHUB_PAGES: 'true'
+          VITE_BASE_PATH: /${{ env.REPO_NAME }}/
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
