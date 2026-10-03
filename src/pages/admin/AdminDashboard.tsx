@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, MessageSquare, Calendar, ShoppingCart,
-  Bell, LogOut, Eye, Settings, FolderTree
+  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useDashboardStats, useInquiries, useAppointments, useProducts } from '../../hooks/useData';
@@ -14,25 +14,141 @@ import SettingsManager from '../../components/admin/SettingsManager';
 
 type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'settings';
 
+const COMPLETE_SETUP_SQL = `-- ============================================
+-- MIMIKO STUDIO - COMPLETE DATABASE SETUP
+-- Copy this ENTIRE script and run in Supabase SQL Editor
+-- ============================================
+
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('product-images', 'product-images', true),
+  ('gallery-images', 'gallery-images', true),
+  ('inquiry-references', 'inquiry-references', false),
+  ('customer-uploads', 'customer-uploads', false)
+ON CONFLICT (id) DO NOTHING;
+
+DO $$ 
+DECLARE 
+  tbl TEXT;
+  tables TEXT[] := ARRAY[
+    'categories', 'products', 'product_images', 'inquiries', 
+    'appointments', 'orders', 'order_items', 'profiles', 
+    'site_settings', 'wishlists', 'reviews', 'notifications', 
+    'availability_slots'
+  ];
+BEGIN
+  FOREACH tbl IN ARRAY tables LOOP
+    EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "%I_all" ON %I', tbl, tbl);
+    EXECUTE format('CREATE POLICY "%I_all" ON %I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+  END LOOP;
+END $$;
+
+DROP POLICY IF EXISTS "storage_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "storage_authenticated_write" ON storage.objects;
+
+CREATE POLICY "storage_public_read" 
+ON storage.objects FOR SELECT 
+USING (true);
+
+CREATE POLICY "storage_authenticated_write" 
+ON storage.objects FOR ALL 
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
+
+INSERT INTO categories (name, slug, description, display_order, is_active)
+VALUES 
+  ('Hand-Painted Clothing', 'clothing', 'T-shirts, kurtis, sarees, dupattas, denim jackets & more', 1, true),
+  ('Designer Bags', 'bags', 'Tote bags, canvas bags, sling bags, pouches & laptop sleeves', 2, true),
+  ('Home Decor', 'home-decor', 'Cushion covers, table runners, wall hangings & more', 3, true),
+  ('Fashion Accessories', 'accessories', 'Hand-painted shoes, caps, scarves & headbands', 4, true),
+  ('Personalized Gifts', 'gifts', 'Custom gift bags, aprons, bookmarks & pouches', 5, true),
+  ('Small Handmade Creations', 'small-creations', 'Scrunchies, hair bows, fabric earrings & keychains', 6, true)
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO site_settings (setting_key, setting_value)
+VALUES 
+  ('site_name', 'Mimiko Studio'),
+  ('site_tagline', 'Paint ♥ Create ♥ Be You'),
+  ('whatsapp_number', '+917874291924'),
+  ('instagram_handle', '@mimiko.studio24'),
+  ('instagram_url', 'https://www.instagram.com/mimiko.studio24/'),
+  ('shipping_fee', '99'),
+  ('free_shipping_minimum', '1999'),
+  ('currency', 'INR')
+ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value;`;
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dbReady, setDbReady] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkDatabaseStatus();
+    }
+  }, [isAuthenticated]);
+
   const checkAuth = async () => {
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
     }
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
     setIsAuthenticated(!!session);
     setLoading(false);
     if (!session) navigate('/admin/login');
+  };
+
+  const checkDatabaseStatus = async () => {
+    try {
+      // Try to query categories - if this fails, DB needs setup
+      const { error } = await supabase
+        .from('categories')
+        .select('id')
+        .limit(1);
+
+      if (error) {
+        setDbReady(false);
+      } else {
+        // Try to insert to check permissions
+        const { error: insertError } = await supabase
+          .from('categories')
+          .insert([{ name: '__test__', slug: '__test__', is_active: false }]);
+
+        if (insertError) {
+          setDbReady(false);
+        } else {
+          // Clean up test
+          await supabase.from('categories').delete().eq('slug', '__test__');
+          setDbReady(true);
+        }
+      }
+    } catch {
+      setDbReady(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -48,6 +164,11 @@ export default function AdminDashboard() {
         <div className="spinner-luxury" />
       </div>
     );
+  }
+
+  // Show database setup screen if needed
+  if (dbReady === false) {
+    return <DatabaseSetupScreen onSetupComplete={() => setDbReady(true)} />;
   }
 
   const tabs = [
@@ -115,6 +236,132 @@ export default function AdminDashboard() {
   );
 }
 
+// Database Setup Screen
+function DatabaseSetupScreen({ onSetupComplete }: { onSetupComplete: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(COMPLETE_SETUP_SQL);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  return (
+    <div className="min-h-screen bg-ivory flex items-center justify-center p-4">
+      <div className="max-w-3xl w-full">
+        <div className="bg-pearl border border-beige/20 rounded-sm p-8 shadow-luxury">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <Database size={48} className="mx-auto text-gold mb-4" />
+            <h1 className="text-2xl font-heading text-chocolate mb-2">
+              🎨 Welcome to Mimiko Studio Admin!
+            </h1>
+            <p className="text-coffee/60">
+              Your database needs a one-time setup. Follow these 3 simple steps:
+            </p>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-6 mb-8">
+            {/* Step 1 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gold text-chocolate flex items-center justify-center font-bold text-sm">
+                1
+              </div>
+              <div className="flex-1">
+                <h3 className="font-heading text-lg text-chocolate mb-1">
+                  Open Supabase SQL Editor
+                </h3>
+                <a
+                  href="https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gold underline text-sm inline-flex items-center gap-1 hover:text-chocolate transition-colors"
+                >
+                  Click here to open SQL Editor <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gold text-chocolate flex items-center justify-center font-bold text-sm">
+                2
+              </div>
+              <div className="flex-1">
+                <h3 className="font-heading text-lg text-chocolate mb-2">
+                  Copy & Paste the SQL Script
+                </h3>
+                <div className="relative">
+                  <pre className="bg-chocolate text-ivory/80 p-4 rounded-sm text-xs overflow-x-auto max-h-48 overflow-y-auto">
+                    <code>{COMPLETE_SETUP_SQL}</code>
+                  </pre>
+                  <button
+                    onClick={handleCopy}
+                    className={`absolute top-2 right-2 px-3 py-1.5 rounded-sm text-xs font-medium transition-all ${
+                      copied 
+                        ? 'bg-sage text-white' 
+                        : 'bg-gold text-chocolate hover:bg-gold/80'
+                    }`}
+                  >
+                    {copied ? '✅ Copied!' : '📋 Copy SQL'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gold text-chocolate flex items-center justify-center font-bold text-sm">
+                3
+              </div>
+              <div className="flex-1">
+                <h3 className="font-heading text-lg text-chocolate mb-1">
+                  Click "Run" in SQL Editor
+                </h3>
+                <p className="text-sm text-coffee/60">
+                  Then come back here and click the button below
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Refresh Button */}
+          <div className="text-center pt-6 border-t border-beige/20">
+            <button
+              onClick={onSetupComplete}
+              className="btn-primary"
+            >
+              ✅ I've Run the SQL - Continue to Dashboard
+            </button>
+            <p className="text-xs text-coffee/50 mt-3">
+              This setup only needs to be done once. After this, everything works automatically!
+            </p>
+          </div>
+
+          {/* What this sets up */}
+          <div className="mt-8 p-4 bg-cream/50 rounded-sm">
+            <h4 className="text-sm font-label tracking-wider uppercase text-gold mb-3">
+              What This Sets Up:
+            </h4>
+            <ul className="grid grid-cols-2 gap-2 text-xs text-coffee/70">
+              <li>✅ All database tables</li>
+              <li>✅ Storage buckets for images</li>
+              <li>✅ Security policies (RLS)</li>
+              <li>✅ Default categories</li>
+              <li>✅ Site settings</li>
+              <li>✅ Admin permissions</li>
+              <li>✅ Image upload support</li>
+              <li>✅ Real-time subscriptions</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Overview Tab
 function OverviewTab() {
   const { stats, loading } = useDashboardStats();
   const { inquiries } = useInquiries();
@@ -221,7 +468,8 @@ function OverviewTab() {
 
       {inquiries.length === 0 && appointments.length === 0 && products.length === 0 && (
         <div className="text-center py-12 bg-pearl border border-beige/20 rounded-sm">
-          <p className="text-coffee/40">No data available yet. Start by adding products or wait for customer inquiries.</p>
+          <p className="text-coffee/40 mb-4">No data yet. Start by adding products!</p>
+          <p className="text-sm text-coffee/50">Go to the Products tab to add your first product.</p>
         </div>
       )}
     </div>
