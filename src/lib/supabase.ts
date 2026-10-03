@@ -5,18 +5,34 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
+let supabaseClient: any = null;
+
+try {
+  if (isSupabaseConfigured) {
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    });
+  }
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+}
+
+export const supabase = supabaseClient || {
+  from: () => ({ select: () => Promise.resolve({ data: [], error: null }), insert: () => Promise.resolve({ data: null, error: null }) }),
+  auth: { getSession: () => Promise.resolve({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }), signOut: () => Promise.resolve() },
+  storage: { from: () => ({ upload: () => Promise.resolve({ error: null }), getPublicUrl: () => ({ data: { publicUrl: '' } }) }) },
+  channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }),
+  removeChannel: () => {},
+};
 
 export const WHATSAPP_NUMBER = '917874291924';
 export const INSTAGRAM_URL = 'https://www.instagram.com/mimiko.studio24/';

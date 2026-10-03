@@ -245,12 +245,12 @@ export async function fetchDashboardStats() {
 
     return {
       totalProducts: products.length,
-      activeProducts: products.filter(p => p.is_published).length,
-      lowStockProducts: products.filter(p => p.stock_quantity < 5).length,
+      activeProducts: products.filter((p: any) => p.is_published).length,
+      lowStockProducts: products.filter((p: any) => p.stock_quantity < 5).length,
       totalInquiries: inquiries.length,
-      pendingInquiries: inquiries.filter(i => i.status === 'new' || i.status === 'under_review').length,
-      newAppointments: appointments.filter(a => a.status === 'requested').length,
-      confirmedAppointments: appointments.filter(a => a.status === 'confirmed').length,
+      pendingInquiries: inquiries.filter((i: any) => i.status === 'new' || i.status === 'under_review').length,
+      newAppointments: appointments.filter((a: any) => a.status === 'requested').length,
+      confirmedAppointments: appointments.filter((a: any) => a.status === 'confirmed').length,
       totalOrders: orders.length,
     };
   } catch (err) {
