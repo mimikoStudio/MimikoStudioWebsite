@@ -131,7 +131,9 @@ export default function AdminDashboard() {
         .limit(1);
 
       if (error) {
-        setDbReady(false);
+        // Redirect to setup page
+        navigate('/admin/setup');
+        return;
       } else {
         // Try to insert to check permissions
         const { error: insertError } = await supabase
@@ -139,7 +141,9 @@ export default function AdminDashboard() {
           .insert([{ name: '__test__', slug: '__test__', is_active: false }]);
 
         if (insertError) {
-          setDbReady(false);
+          // Redirect to setup page
+          navigate('/admin/setup');
+          return;
         } else {
           // Clean up test
           await supabase.from('categories').delete().eq('slug', '__test__');
@@ -147,7 +151,8 @@ export default function AdminDashboard() {
         }
       }
     } catch {
-      setDbReady(false);
+      // Redirect to setup page
+      navigate('/admin/setup');
     }
   };
 
