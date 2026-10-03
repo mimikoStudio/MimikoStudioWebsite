@@ -28,15 +28,15 @@ export default function Gallery() {
   return (
     <div className="pt-20">
       {/* Hero */}
-      <section className="py-24 bg-gradient-to-br from-espresso to-chocolate relative">
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `radial-gradient(circle at 50% 50%, rgba(212,175,114,0.3) 0%, transparent 60%)`
+      <section className="py-24 bg-gradient-to-br from-chocolate to-coffee relative">
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `radial-gradient(circle at 50% 50%, rgba(213,170,100,0.3) 0%, transparent 60%)`
         }} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <span className="text-champagne text-xs font-label tracking-[0.3em] uppercase">Portfolio</span>
-          <h1 className="font-heading text-4xl sm:text-5xl font-light text-pearl mt-4 mb-6">Gallery</h1>
+          <span className="text-gold text-xs font-label tracking-[0.3em] uppercase">📸 Portfolio</span>
+          <h1 className="font-heading text-4xl sm:text-5xl font-light text-ivory mt-4 mb-6">Gallery</h1>
           <div className="gold-divider w-24 mx-auto mb-6" />
-          <p className="text-pearl/60 max-w-2xl mx-auto">
+          <p className="text-ivory/60 max-w-2xl mx-auto">
             A showcase of our handcrafted creations — each piece unique, each story beautiful.
           </p>
         </div>
@@ -53,8 +53,8 @@ export default function Gallery() {
                 onClick={() => setActiveFilter(cat)}
                 className={`px-4 py-2 text-xs font-label tracking-wider uppercase rounded-sm border transition-all duration-300 ${
                   activeFilter === cat
-                    ? 'bg-champagne border-champagne text-pearl'
-                    : 'border-beige text-espresso/60 hover:border-champagne hover:text-champagne'
+                    ? 'bg-gold border-gold text-white'
+                    : 'border-beige text-coffee/60 hover:border-gold hover:text-gold'
                 }`}
               >
                 {cat}

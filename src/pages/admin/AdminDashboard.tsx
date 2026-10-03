@@ -57,15 +57,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-ivory flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-espresso min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-40">
-        <div className="p-6 border-b border-pearl/10">
+      <aside className="w-64 bg-chocolate min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-40">
+        <div className="p-6 border-b border-ivory/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-champagne/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center border border-gold/30">
               <span className="text-lg">🎨</span>
             </div>
             <div>
-              <h1 className="font-heading text-lg font-semibold text-pearl">Mimiko</h1>
-              <p className="text-[10px] tracking-[0.2em] uppercase text-champagne">Admin Panel</p>
+              <h1 className="font-heading text-lg font-semibold text-ivory">Mimiko</h1>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-gold">Admin Panel</p>
             </div>
           </div>
         </div>
@@ -77,8 +77,8 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-sm text-sm transition-all ${
                 activeTab === tab.id
-                  ? 'bg-champagne/10 text-champagne'
-                  : 'text-pearl/60 hover:text-pearl hover:bg-pearl/5'
+                  ? 'bg-gold/10 text-gold'
+                  : 'text-ivory/60 hover:text-ivory hover:bg-ivory/5'
               }`}
             >
               {tab.icon}
@@ -87,11 +87,11 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-pearl/10">
-          <Link to="/" className="flex items-center gap-3 px-4 py-3 text-sm text-pearl/60 hover:text-pearl transition-colors">
+        <div className="p-4 border-t border-ivory/10">
+          <Link to="/" className="flex items-center gap-3 px-4 py-3 text-sm text-ivory/60 hover:text-ivory transition-colors">
             <Eye size={16} /> View Website
           </Link>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-pearl/60 hover:text-red-400 transition-colors">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-ivory/60 hover:text-blush transition-colors">
             <LogOut size={16} /> Sign Out
           </button>
         </div>

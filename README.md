@@ -170,10 +170,14 @@ Push to the `main` branch. GitHub Actions will automatically:
 
 ## 🎨 Design System
 
-- **Primary:** Champagne Gold (#D4AF72), Deep Espresso (#382820)
-- **Backgrounds:** Soft Ivory (#FAF7F0), Pearl White (#FFFDF9)
-- **Accents:** Muted Rose Gold (#B98B78), Dusty Blush (#EBCBC7), Sage Green (#929B7A)
+Inspired by the Mimiko Studio logo's warm, artisanal palette:
+
+- **Primary:** Champagne Gold (#D5AA64), Dark Chocolate (#4B2818)
+- **Backgrounds:** Warm Ivory (#FFF5E9), Soft Cream (#F9EBDD)
+- **Accents:** Blush Pink (#F2A0B4), Pastel Blue (#79B8E8), Sage Green (#82986C)
+- **Wood tones:** Natural Wood (#D9A46F), Light Beige (#EAC69C)
 - **Typography:** Cormorant Garamond (headings), Inter (body), Montserrat (labels)
+- **Icons:** Emoji-based icon system for friendly, creative feel
 
 ## 📞 Contact
 
