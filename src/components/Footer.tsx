@@ -1,0 +1,134 @@
+import { Link } from 'react-router-dom';
+import { INSTAGRAM_URL, WHATSAPP_URL } from '../lib/supabase';
+
+export default function Footer() {
+  return (
+    <footer className="bg-chocolate text-ivory/80">
+      <div className="gold-divider-thick" />
+      
+      {/* Main Footer */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          {/* Brand */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center border border-gold/30">
+                <span className="text-xl" role="img" aria-label="Mimiko">🎨</span>
+              </div>
+              <div>
+                <h3 className="font-heading text-xl font-semibold text-ivory">Mimiko Studio</h3>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-gold">Fabric Art</p>
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed text-ivory/50 mb-6">
+              Handcrafted fabric art, thoughtfully painted and uniquely designed for you. Each piece tells a story of creativity and passion.
+            </p>
+            <p className="text-gold font-heading text-sm italic">Paint ♥ Create ♥ Be You</p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-heading text-lg font-semibold text-ivory mb-6">🏠 Explore</h4>
+            <ul className="space-y-3">
+              {[
+                { label: '🛍️ Shop', path: '/shop' },
+                { label: '💎 Collections', path: '/collections' },
+                { label: '🎨 Custom Creations', path: '/custom-creations' },
+                { label: '📅 Book Appointment', path: '/book-appointment' },
+                { label: '🐼 Our Story', path: '/our-story' },
+                { label: '📸 Gallery', path: '/gallery' },
+              ].map(link => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="text-sm text-ivory/50 hover:text-gold transition-colors duration-300"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Customer Service */}
+          <div>
+            <h4 className="font-heading text-lg font-semibold text-ivory mb-6">💌 Customer Care</h4>
+            <ul className="space-y-3">
+              {[
+                { label: '💬 Contact Us', path: '/contact' },
+                { label: '🎁 Custom Orders', path: '/custom-creations' },
+                { label: '🚚 Shipping Info', path: '/contact' },
+                { label: '📦 Returns', path: '/contact' },
+                { label: '⭐ Reviews', path: '/gallery' },
+              ].map((link, i) => (
+                <li key={i}>
+                  <Link
+                    to={link.path}
+                    className="text-sm text-ivory/50 hover:text-gold transition-colors duration-300"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h4 className="font-heading text-lg font-semibold text-ivory mb-6">📍 Get in Touch</h4>
+            <ul className="space-y-4">
+              <li className="flex items-center gap-3">
+                <span className="text-gold">💬</span>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-ivory/50 hover:text-gold transition-colors">
+                  +91 7874291924
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="text-gold">📱</span>
+                <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-ivory/50 hover:text-gold transition-colors">
+                  @mimiko.studio24
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="text-gold">📌</span>
+                <span className="text-sm text-ivory/50">Pinterest — Coming Soon</span>
+              </li>
+            </ul>
+
+            {/* Newsletter */}
+            <div className="mt-8">
+              <p className="text-xs font-label tracking-wider uppercase text-ivory/50 mb-3">💌 Stay Inspired</p>
+              <div className="flex">
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  className="flex-1 px-3 py-2 bg-ivory/10 border border-ivory/20 text-ivory text-sm rounded-l-sm focus:outline-none focus:border-gold placeholder:text-ivory/30"
+                />
+                <button className="px-4 py-2 bg-gold text-chocolate text-xs font-label tracking-wider uppercase rounded-r-sm hover:bg-gold/80 transition-colors font-medium">
+                  Join
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-ivory/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-ivory/30">
+            © {new Date().getFullYear()} Mimiko Studio | Fabric Art. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6">
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
+              📱
+            </a>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
+              💬
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
