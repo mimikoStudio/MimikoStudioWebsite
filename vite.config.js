@@ -2,9 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// GitHub Pages base path - change this to your repository name
-// Example: if repo is 'mimiko-studio', base should be '/mimiko-studio/'
-const basePath = process.env.GITHUB_PAGES === 'true' ? '/mimiko-studio/' : '/';
+// GitHub Pages base path - uses relative path for maximum compatibility
+// This works for any repository name or custom domain
+const basePath = process.env.VITE_BASE_PATH || './';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
