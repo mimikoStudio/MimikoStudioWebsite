@@ -81,7 +81,7 @@ export default function Navbar() {
             <Link to="/shop" className={`hidden md:flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-gold/10 ${textColor}`} aria-label="Wishlist">
               <Heart size={16} />
             </Link>
-            <Link to="/shop" className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-gold/10 ${textColor}`} aria-label="Shopping bag">
+            <Link to="/cart" className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-gold/10 ${textColor}`} aria-label="Shopping bag">
               <ShoppingBag size={16} />
               {totalItems > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blush text-white text-[9px] rounded-full flex items-center justify-center font-medium">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, SlidersHorizontal, Heart, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { createWhatsAppLink } from '../lib/supabase';
@@ -125,10 +126,21 @@ export default function Shop() {
           {!loading && sortedProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {sortedProducts.map((product, idx) => (
-                <div key={product.id} className="card-luxury group">
+                <Link key={product.id} to={`/product/${product.slug}`} className="card-luxury group block">
                   <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
-                    {product.images && product.images.length > 0 ? (
-                      <img src={product.images[0].image_url} alt={product.name} className="w-full h-full object-cover product-image-hover" />
+                    {product.images && product.images.length > 0 && product.images[0]?.image_url ? (
+                      <img 
+                        src={product.images[0].image_url} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover product-image-hover"
+                        onError={(e) => {
+                          console.error('Image failed to load:', product.images?.[0]?.image_url);
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.parentElement) {
+                            e.currentTarget.parentElement.innerHTML = `<span class="text-6xl">${productEmojis[idx % productEmojis.length]}</span>`;
+                          }
+                        }}
+                      />
                     ) : (
                       <span className="text-6xl product-image-hover">{productEmojis[idx % productEmojis.length]}</span>
                     )}
@@ -182,11 +194,12 @@ export default function Shop() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-4 w-full block text-center text-xs font-label tracking-wider uppercase text-gold border border-gold/30 py-2 rounded-sm hover:bg-gold hover:text-white transition-all"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       💬 Inquire on WhatsApp
                     </a>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
