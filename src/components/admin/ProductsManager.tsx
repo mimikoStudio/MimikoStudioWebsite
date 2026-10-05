@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
 import { useProducts, useCategories } from '../../hooks/useData';
 import ImageUpload from './ImageUpload';
+import { ensureStorageBuckets } from '../../lib/storage';
 
 export default function ProductsManager() {
   const { products, loading, refetch } = useProducts();
@@ -10,6 +11,7 @@ export default function ProductsManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [bucketError, setBucketError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -27,6 +29,18 @@ export default function ProductsManager() {
     is_published: false,
     images: [] as string[],
   });
+
+  // Auto-create storage buckets on mount
+  useEffect(() => {
+    async function setupBuckets() {
+      const results = await ensureStorageBuckets();
+      const failed = results.filter(r => !r.success);
+      if (failed.length > 0) {
+        setBucketError(`⚠️ Storage buckets need setup. Please run the SQL fix in Supabase.`);
+      }
+    }
+    setupBuckets();
+  }, []);
 
   useEffect(() => {
     if (editingProduct) {
@@ -89,7 +103,12 @@ export default function ProductsManager() {
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('row-level security')) {
+            throw new Error('RLS policy is blocking this operation. Please run the SQL fix in Supabase SQL Editor. See FINAL_FIX_RLS_AND_BUCKETS.md for instructions.');
+          }
+          throw error;
+        }
         productId = editingProduct.id;
       } else {
         // Insert product
@@ -98,7 +117,12 @@ export default function ProductsManager() {
           .insert([productData])
           .select()
           .single();
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('row-level security')) {
+            throw new Error('RLS policy is blocking this operation. Please run the SQL fix in Supabase SQL Editor. See FINAL_FIX_RLS_AND_BUCKETS.md for instructions.');
+          }
+          throw error;
+        }
         productId = data.id;
       }
 
@@ -215,6 +239,16 @@ export default function ProductsManager() {
           <Plus size={16} /> Add Product
         </button>
       </div>
+
+      {/* Bucket Error Warning */}
+      {bucketError && (
+        <div className="bg-blush/10 border border-blush/20 rounded-sm p-4 mb-6">
+          <p className="text-sm text-blush font-medium">{bucketError}</p>
+          <p className="text-xs text-blush/70 mt-2">
+            Go to <a href="https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql" target="_blank" rel="noopener noreferrer" className="underline">Supabase SQL Editor</a> and run the fix from FINAL_FIX_RLS_AND_BUCKETS.md
+          </p>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="bg-pearl border border-beige/20 rounded-sm p-4 mb-6">
