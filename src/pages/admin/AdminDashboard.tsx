@@ -10,7 +10,7 @@ import ProductsManager from '../../components/admin/ProductsManager';
 import InquiriesManager from '../../components/admin/InquiriesManager';
 import AppointmentsManager from '../../components/admin/AppointmentsManager';
 import CategoriesManager from '../../components/admin/CategoriesManager';
-import SettingsManager from '../../components/admin/SettingsManager';
+import SiteSettingsManager from '../../components/admin/SiteSettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
 import DebugPanel from '../../components/admin/DebugPanel';
 import ImageUploadDiagnostics from '../../components/admin/ImageUploadDiagnostics';
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
         {activeTab === 'orders' && <OrdersManager />}
-        {activeTab === 'settings' && <SettingsManager />}
+        {activeTab === 'settings' && <SiteSettingsManager />}
       </main>
     </div>
   );
