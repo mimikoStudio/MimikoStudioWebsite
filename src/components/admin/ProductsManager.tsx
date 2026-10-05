@@ -242,10 +242,54 @@ export default function ProductsManager() {
 
       {/* Bucket Error Warning */}
       {bucketError && (
-        <div className="bg-blush/10 border border-blush/20 rounded-sm p-4 mb-6">
-          <p className="text-sm text-blush font-medium">{bucketError}</p>
-          <p className="text-xs text-blush/70 mt-2">
-            Go to <a href="https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql" target="_blank" rel="noopener noreferrer" className="underline">Supabase SQL Editor</a> and run the fix from FINAL_FIX_RLS_AND_BUCKETS.md
+        <div className="bg-red-50 border-2 border-red-300 rounded-sm p-6 mb-6">
+          <p className="text-red-800 font-bold text-lg mb-3">⚠️ Storage Buckets Not Created</p>
+          <p className="text-red-700 text-sm mb-4">
+            You need to run this SQL <strong>once</strong> in Supabase to enable image uploads:
+          </p>
+          <div className="bg-white border border-red-200 rounded-sm p-4 mb-4">
+            <p className="text-xs text-red-600 font-bold mb-2">👇 Copy this SQL:</p>
+            <pre className="text-xs text-chocolate bg-cream/50 p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('product-images', 'product-images', true),
+  ('gallery-images', 'gallery-images', true),
+  ('inquiry-references', 'inquiry-references', false),
+  ('customer-uploads', 'customer-uploads', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "public_storage_access" ON storage.objects;
+CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WITH CHECK (true);</pre>
+          </div>
+          <div className="flex gap-3">
+            <a 
+              href="https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn-primary"
+            >
+              🔗 Open Supabase SQL Editor
+            </a>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('product-images', 'product-images', true),
+  ('gallery-images', 'gallery-images', true),
+  ('inquiry-references', 'inquiry-references', false),
+  ('customer-uploads', 'customer-uploads', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "public_storage_access" ON storage.objects;
+CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WITH CHECK (true);`);
+                alert('✅ SQL copied! Now paste it in Supabase SQL Editor and click Run.');
+              }}
+              className="btn-secondary"
+            >
+              📋 Copy SQL
+            </button>
+          </div>
+          <p className="text-xs text-red-600 mt-4">
+            After running the SQL, refresh this page and the warning will disappear.
           </p>
         </div>
       )}
