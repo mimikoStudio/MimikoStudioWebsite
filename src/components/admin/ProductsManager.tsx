@@ -311,25 +311,41 @@ export default function ProductsManager() {
                 <tr key={product.id} className="hover:bg-cream/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {product.images && product.images.length > 0 ? (
+                      {product.images && product.images.length > 0 && product.images[0].image_url ? (
                         <img
                           src={product.images[0].image_url}
                           alt={product.name}
-                          className="w-12 h-12 object-cover rounded-sm"
+                          className="w-12 h-12 object-cover rounded-sm border border-beige/20"
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"%3E%3Crect fill="%23E9DCCB" width="48" height="48"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="24"%3E📦%3C/text%3E%3C/svg%3E';
+                          }}
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-cream/50 rounded-sm flex items-center justify-center">
+                        <div className="w-12 h-12 bg-cream/50 rounded-sm flex items-center justify-center border border-beige/20">
                           <span className="text-2xl">📦</span>
                         </div>
                       )}
                       <div>
                         <p className="font-medium text-chocolate">{product.name}</p>
                         <p className="text-xs text-coffee/50">{product.slug}</p>
+                        {product.images && product.images.length > 0 && (
+                          <p className="text-xs text-gold">{product.images.length} image{product.images.length > 1 ? 's' : ''}</p>
+                        )}
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-coffee/70">
-                    {product.category?.name || 'Uncategorized'}
+                    {product.category?.name ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-gold"></span>
+                        {product.category.name}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-coffee/40">
+                        <span className="w-2 h-2 rounded-full bg-coffee/20"></span>
+                        Uncategorized
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div>
@@ -343,11 +359,22 @@ export default function ProductsManager() {
                     {product.stock_quantity}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`badge-luxury ${
-                      product.is_published ? 'bg-sage/10 text-sage' : 'bg-coffee/10 text-coffee'
-                    }`}>
-                      {product.is_published ? 'Published' : 'Draft'}
-                    </span>
+                    <button
+                      onClick={async () => {
+                        const newStatus = !product.is_published;
+                        const { error } = await supabase
+                          .from('products')
+                          .update({ is_published: newStatus })
+                          .eq('id', product.id);
+                        if (!error) refetch();
+                      }}
+                      className={`badge-luxury cursor-pointer transition-all hover:opacity-80 ${
+                        product.is_published ? 'bg-sage/10 text-sage' : 'bg-coffee/10 text-coffee'
+                      }`}
+                      title={product.is_published ? 'Click to unpublish (hide from website)' : 'Click to publish (show on website)'}
+                    >
+                      {product.is_published ? '✅ Published' : '📝 Draft'}
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
