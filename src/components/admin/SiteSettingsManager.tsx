@@ -6,8 +6,9 @@ import {
   Phone, MessageSquare, ShoppingBag, Save, RotateCcw, Eye,
   Upload, Check, X, AlertCircle
 } from 'lucide-react';
+import SiteSettingsPreview from './SiteSettingsPreview';
 
-type SettingsTab = 'branding' | 'theme' | 'typography' | 'homepage' | 'header' | 'footer' | 'social' | 'contact' | 'ecommerce' | 'inquiry';
+type SettingsTab = 'branding' | 'theme' | 'typography' | 'homepage' | 'header' | 'footer' | 'social' | 'contact' | 'ecommerce' | 'inquiry' | 'preview';
 
 export default function SiteSettingsManager() {
   const { settings, loading, updateSettings, resetSettings } = useSiteSettings();
@@ -98,6 +99,7 @@ export default function SiteSettingsManager() {
     { id: 'contact' as SettingsTab, label: '📞 Contact', icon: <Phone size={16} /> },
     { id: 'ecommerce' as SettingsTab, label: '🛍️ E-commerce', icon: <ShoppingBag size={16} /> },
     { id: 'inquiry' as SettingsTab, label: '💬 Inquiry', icon: <MessageSquare size={16} /> },
+    { id: 'preview' as SettingsTab, label: '🔍 Preview', icon: <Eye size={16} /> },
   ];
 
   return (
@@ -171,6 +173,7 @@ export default function SiteSettingsManager() {
           {activeTab === 'contact' && <ContactSettings settings={localSettings} onUpdate={updateLocalSetting} />}
           {activeTab === 'ecommerce' && <EcommerceSettings settings={localSettings} onUpdate={updateLocalSetting} />}
           {activeTab === 'inquiry' && <InquirySettings settings={localSettings} onUpdate={updateLocalSetting} />}
+          {activeTab === 'preview' && <SiteSettingsPreview settings={localSettings} />}
         </div>
       </div>
 

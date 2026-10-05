@@ -5,7 +5,7 @@ import { SiteSettings, defaultSiteSettings } from '../types/siteSettings';
 interface SiteSettingsContextType {
   settings: SiteSettings;
   loading: boolean;
-  updateSettings: (newSettings: Partial<SiteSettings>) => Promise<void>;
+  updateSettings: (newSettings: Partial<SiteSettings>) => Promise<{ success: boolean; message: string }>;
   resetSettings: () => Promise<void>;
   refreshSettings: () => Promise<void>;
 }
@@ -65,14 +65,44 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
           .from('site_settings')
           .upsert(update, { onConflict: 'setting_key' });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Failed to save setting:', {
+            key: update.setting_key,
+            error: error.message,
+            details: error.details,
+            hint: error.hint
+          });
+          throw new Error(`Failed to save setting "${update.setting_key}": ${error.message}`);
+        }
       }
 
+      // Update local state
       setSettings(updatedSettings);
       
       // Apply theme to document
       applyTheme(updatedSettings);
-    } catch (error) {
+      
+      // Invalidate browser cache for this session
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      
+      // Force reload of images by adding timestamp to URLs
+      const timestamp = Date.now();
+      document.querySelectorAll('img[data-site-image]').forEach(img => {
+        const src = img.getAttribute('src');
+        if (src && !src.includes('timestamp=')) {
+          img.setAttribute('src', `${src}${src.includes('?') ? '&' : '?'}timestamp=${timestamp}`);
+        }
+      });
+      
+      return { success: true, message: 'Settings saved successfully' };
+    } catch (error: any) {
+      console.error('Error updating settings:', {
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   };
