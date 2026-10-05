@@ -26,7 +26,11 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         .from('site_settings')
         .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Site settings table not found or not accessible, using defaults');
+        setLoading(false);
+        return;
+      }
 
       if (data && data.length > 0) {
         const settingsMap: any = {};
@@ -41,7 +45,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         setSettings({ ...defaultSiteSettings, ...settingsMap });
       }
     } catch (error) {
-      console.error('Error loading site settings:', error);
+      console.warn('Error loading site settings, using defaults:', error);
     } finally {
       setLoading(false);
     }
