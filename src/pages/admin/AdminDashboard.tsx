@@ -12,6 +12,7 @@ import AppointmentsManager from '../../components/admin/AppointmentsManager';
 import CategoriesManager from '../../components/admin/CategoriesManager';
 import SettingsManager from '../../components/admin/SettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
+import DebugPanel from '../../components/admin/DebugPanel';
 
 type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'settings';
 
@@ -377,6 +378,9 @@ function OverviewTab() {
   return (
     <div>
       <h2 className="text-2xl font-heading text-chocolate mb-6">📊 Dashboard Overview</h2>
+
+      {/* Debug Panel - Shows database status and helps troubleshoot */}
+      <DebugPanel />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

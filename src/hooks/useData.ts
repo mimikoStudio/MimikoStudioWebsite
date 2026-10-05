@@ -22,12 +22,29 @@ export function useProducts(filters?: {
     setError(null);
     
     if (!isSupabaseConfigured) {
+      console.warn('⚠️ Supabase not configured');
       setProducts([]);
       setLoading(false);
       return;
     }
 
     try {
+      console.log('🔍 Fetching products...', { showAll: filters?.showAll });
+      
+      // First, try a simple query to test connection
+      const { data: testData, error: testError } = await supabase
+        .from('products')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('❌ Database connection test failed:', testError);
+        // If RLS error, try without filters
+        if (testError.message.includes('row-level security')) {
+          console.warn('⚠️ RLS error detected. Trying alternative query...');
+        }
+      }
+      
       let query = supabase
         .from('products')
         .select('*, product_images(*), categories(*)')
@@ -45,10 +62,33 @@ export function useProducts(filters?: {
       if (filters?.limit) query = query.limit(filters.limit);
 
       const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
+      
+      if (fetchError) {
+        console.error('❌ Error fetching products:', fetchError);
+        console.error('Error details:', {
+          message: fetchError.message,
+          details: fetchError.details,
+          hint: fetchError.hint,
+          code: fetchError.code
+        });
+        
+        // If RLS error, return empty array but don't throw
+        if (fetchError.message.includes('row-level security')) {
+          console.warn('⚠️ RLS policy blocking access. Please run the RLS fix SQL.');
+          setProducts([]);
+          setError('Database access blocked by security policy. Please contact admin.');
+          setLoading(false);
+          return;
+        }
+        
+        throw fetchError;
+      }
+      
+      console.log(`✅ Found ${data?.length || 0} products`, data);
       setProducts(data || []);
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ Error in fetchProducts:', err);
+      setError(err.message || 'Failed to fetch products');
       setProducts([]);
     } finally {
       setLoading(false);
