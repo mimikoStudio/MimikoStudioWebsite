@@ -11,8 +11,9 @@ import InquiriesManager from '../../components/admin/InquiriesManager';
 import AppointmentsManager from '../../components/admin/AppointmentsManager';
 import CategoriesManager from '../../components/admin/CategoriesManager';
 import SettingsManager from '../../components/admin/SettingsManager';
+import OrdersManager from '../../components/admin/OrdersManager';
 
-type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'settings';
+type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'settings';
 
 const COMPLETE_SETUP_SQL = `-- ============================================
 -- MIMIKO STUDIO - COMPLETE DATABASE SETUP
@@ -169,6 +170,7 @@ export default function AdminDashboard() {
     { id: 'categories' as Tab, label: '🗂️ Categories', icon: <FolderTree size={16} /> },
     { id: 'inquiries' as Tab, label: '💌 Inquiries', icon: <MessageSquare size={16} /> },
     { id: 'appointments' as Tab, label: '📅 Appointments', icon: <Calendar size={16} /> },
+    { id: 'orders' as Tab, label: '📦 Orders', icon: <ShoppingCart size={16} /> },
     { id: 'settings' as Tab, label: '⚙️ Settings', icon: <Settings size={16} /> },
   ];
 
@@ -222,6 +224,7 @@ export default function AdminDashboard() {
         {activeTab === 'categories' && <CategoriesManager />}
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
+        {activeTab === 'orders' && <OrdersManager />}
         {activeTab === 'settings' && <SettingsManager />}
       </main>
     </div>

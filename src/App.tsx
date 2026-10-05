@@ -7,6 +7,8 @@ import WhatsAppButton from './components/WhatsAppButton';
 import Home from './pages/Home';
 import Collections from './pages/Collections';
 import Shop from './pages/Shop';
+import ProductDetail from './pages/ProductDetail';
+import Cart from './pages/Cart';
 import CustomCreations from './pages/CustomCreations';
 import BookAppointment from './pages/BookAppointment';
 import OurStory from './pages/OurStory';
@@ -39,6 +41,8 @@ function App() {
                         <Route path="/" element={<Home />} />
                         <Route path="/collections" element={<Collections />} />
                         <Route path="/shop" element={<Shop />} />
+                        <Route path="/product/:slug" element={<ProductDetail />} />
+                        <Route path="/cart" element={<Cart />} />
                         <Route path="/custom-creations" element={<CustomCreations />} />
                         <Route path="/book-appointment" element={<BookAppointment />} />
                         <Route path="/our-story" element={<OurStory />} />
