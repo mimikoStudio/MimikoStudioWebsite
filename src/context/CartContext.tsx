@@ -22,7 +22,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
 
   const addItem = useCallback(async (product: Product, quantity = 1, size?: string, color?: string) => {
-    // 验证库存
+    // Validate stock
     const validation = await validateStock(product.id, quantity);
     
     if (!validation.valid) {
@@ -33,9 +33,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
         const newQuantity = existing.quantity + quantity;
-        // 再次验证总数量
+        // Validate total quantity again
         if (newQuantity > product.stock_quantity) {
-          return prev; // 不更新
+          return prev; // Don't update
         }
         return prev.map(item =>
           item.product.id === product.id
@@ -46,7 +46,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...prev, { product, quantity, selectedSize: size, selectedColor: color }];
     });
 
-    return { success: true, message: '已添加到购物车' };
+    return { success: true, message: 'Added to cart' };
   }, []);
 
   const removeItem = useCallback((productId: string) => {
@@ -56,16 +56,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
     if (quantity <= 0) {
       setItems(prev => prev.filter(item => item.product.id !== productId));
-      return { success: true, message: '已从购物车移除' };
+      return { success: true, message: 'Removed from cart' };
     }
 
-    // 获取当前购物车中的产品
+    // Get current cart item
     const currentItem = items.find(item => item.product.id === productId);
     if (!currentItem) {
-      return { success: false, message: '产品不在购物车中' };
+      return { success: false, message: 'Product not in cart' };
     }
 
-    // 验证库存
+    // Validate stock
     const validation = await validateStock(productId, quantity);
     
     if (!validation.valid) {
@@ -78,7 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       )
     );
 
-    return { success: true, message: '数量已更新' };
+    return { success: true, message: 'Quantity updated' };
   }, [items]);
 
   const clearCart = useCallback(() => setItems([]), []);

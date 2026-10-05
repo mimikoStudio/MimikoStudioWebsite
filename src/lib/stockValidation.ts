@@ -1,10 +1,10 @@
 import { supabase } from './supabase';
 
 /**
- * 验证库存是否足够
- * @param productId 产品ID
- * @param requestedQuantity 请求的数量
- * @returns 验证结果
+ * Validate if stock is sufficient
+ * @param productId Product ID
+ * @param requestedQuantity Requested quantity
+ * @returns Validation result
  */
 export async function validateStock(
   productId: string,
@@ -21,7 +21,7 @@ export async function validateStock(
       return {
         valid: false,
         available: 0,
-        message: '无法验证库存',
+        message: 'Unable to validate stock',
       };
     }
 
@@ -31,7 +31,7 @@ export async function validateStock(
       return {
         valid: false,
         available: 0,
-        message: `${product.name} 缺货`,
+        message: `${product.name} is out of stock`,
       };
     }
 
@@ -39,28 +39,28 @@ export async function validateStock(
       return {
         valid: false,
         available,
-        message: `${product.name} 只有 ${available} 件可用`,
+        message: `Only ${available} ${product.name} available`,
       };
     }
 
     return {
       valid: true,
       available,
-      message: '库存充足',
+      message: 'Stock sufficient',
     };
   } catch (error) {
     return {
       valid: false,
       available: 0,
-      message: '库存验证失败',
+      message: 'Stock validation failed',
     };
   }
 }
 
 /**
- * 批量验证购物车中所有产品的库存
- * @param cartItems 购物车项目
- * @returns 验证结果
+ * Batch validate stock for all products in cart
+ * @param cartItems Cart items
+ * @returns Validation results
  */
 export async function validateCartStock(
   cartItems: Array<{ productId: string; quantity: number }>
@@ -93,11 +93,11 @@ export async function validateCartStock(
 }
 
 /**
- * 使用数据库事务安全地减少库存并创建订单
- * 防止超卖
- * @param orderData 订单数据
- * @param orderItems 订单项目
- * @returns 订单创建结果
+ * Safely decrease stock and create order using database transaction
+ * Prevents overselling
+ * @param orderData Order data
+ * @param orderItems Order items
+ * @returns Order creation result
  */
 export async function createOrderWithStockUpdate(
   orderData: {
@@ -122,7 +122,7 @@ export async function createOrderWithStockUpdate(
   }>
 ): Promise<{ success: boolean; orderId?: string; error?: string }> {
   try {
-    // 步骤1：验证所有产品的库存
+    // Step 1: Validate stock for all products
     const stockValidation = await validateCartStock(
       orderItems.map((item) => ({
         productId: item.product_id,
@@ -135,11 +135,11 @@ export async function createOrderWithStockUpdate(
       const errorMessages = failedItems.map((r) => r.message).join('; ');
       return {
         success: false,
-        error: `库存不足: ${errorMessages}`,
+        error: `Insufficient stock: ${errorMessages}`,
       };
     }
 
-    // 步骤2：创建订单
+    // Step 2: Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert([orderData])
@@ -149,11 +149,11 @@ export async function createOrderWithStockUpdate(
     if (orderError) {
       return {
         success: false,
-        error: `创建订单失败: ${orderError.message}`,
+        error: `Failed to create order: ${orderError.message}`,
       };
     }
 
-    // 步骤3：创建订单项
+    // Step 3: Create order items
     const itemsWithOrderId = orderItems.map((item) => ({
       ...item,
       order_id: order.id,
@@ -164,15 +164,15 @@ export async function createOrderWithStockUpdate(
       .insert(itemsWithOrderId);
 
     if (itemsError) {
-      // 回滚：删除已创建的订单
+      // Rollback: delete created order
       await supabase.from('orders').delete().eq('id', order.id);
       return {
         success: false,
-        error: `创建订单项失败: ${itemsError.message}`,
+        error: `Failed to create order items: ${itemsError.message}`,
       };
     }
 
-    // 步骤4：更新库存（原子操作）
+    // Step 4: Update stock (atomic operation)
     for (const item of orderItems) {
       const { error: stockError } = await supabase.rpc('decrement_stock', {
         product_id: item.product_id,
@@ -180,7 +180,7 @@ export async function createOrderWithStockUpdate(
       });
 
       if (stockError) {
-        // 如果RPC函数不存在，使用普通更新
+        // If RPC function doesn't exist, use regular update
         const { data: product } = await supabase
           .from('products')
           .select('stock_quantity')
@@ -190,12 +190,12 @@ export async function createOrderWithStockUpdate(
         const newStock = (product?.stock_quantity || 0) - item.quantity;
 
         if (newStock < 0) {
-          // 回滚：删除订单和订单项
+          // Rollback: delete order and order items
           await supabase.from('order_items').delete().eq('order_id', order.id);
           await supabase.from('orders').delete().eq('id', order.id);
           return {
             success: false,
-            error: `库存不足，无法完成订单`,
+            error: `Insufficient stock, cannot complete order`,
           };
         }
 
@@ -213,15 +213,15 @@ export async function createOrderWithStockUpdate(
   } catch (error: any) {
     return {
       success: false,
-      error: error.message || '订单创建失败',
+      error: error.message || 'Order creation failed',
     };
   }
 }
 
 /**
- * 获取库存状态标签
- * @param stockQuantity 库存数量
- * @returns 状态标签和颜色
+ * Get stock status label
+ * @param stockQuantity Stock quantity
+ * @returns Status label and color
  */
 export function getStockStatus(stockQuantity: number): {
   label: string;
@@ -230,25 +230,25 @@ export function getStockStatus(stockQuantity: number): {
 } {
   if (stockQuantity === 0) {
     return {
-      label: '缺货',
+      label: 'Out of Stock',
       color: 'text-red-600 bg-red-50',
       icon: '🔴',
     };
   } else if (stockQuantity <= 3) {
     return {
-      label: `仅剩 ${stockQuantity} 件`,
+      label: `Only ${stockQuantity} left`,
       color: 'text-orange-600 bg-orange-50',
       icon: '🟠',
     };
   } else if (stockQuantity <= 10) {
     return {
-      label: '库存有限',
+      label: 'Limited Stock',
       color: 'text-yellow-600 bg-yellow-50',
       icon: '🟡',
     };
   } else {
     return {
-      label: '有货',
+      label: 'In Stock',
       color: 'text-green-600 bg-green-50',
       icon: '🟢',
     };

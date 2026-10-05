@@ -24,20 +24,20 @@ export default function ImageUploadDiagnostics() {
         testResults.push({
           test: 'Table exists',
           status: 'error',
-          message: `❌ product_images 表不存在或无法访问: ${error.message}`,
+          message: `❌ product_images table does not exist or is not accessible: ${error.message}`,
         });
       } else {
         testResults.push({
           test: 'Table exists',
           status: 'success',
-          message: '✅ product_images 表存在',
+          message: '✅ product_images table exists',
         });
       }
     } catch (err: any) {
       testResults.push({
         test: 'Table exists',
         status: 'error',
-        message: `❌ 检查表时出错: ${err.message}`,
+        message: `❌ Error checking table: ${err.message}`,
       });
     }
 
@@ -51,20 +51,20 @@ export default function ImageUploadDiagnostics() {
         testResults.push({
           test: 'Image count',
           status: 'error',
-          message: `❌ 无法获取图片数量: ${error.message}`,
+          message: `❌ Unable to get image count: ${error.message}`,
         });
       } else {
         testResults.push({
           test: 'Image count',
           status: 'success',
-          message: `✅ 当前有 ${count || 0} 张图片`,
+          message: `✅ Currently ${count || 0} images`,
         });
       }
     } catch (err: any) {
       testResults.push({
         test: 'Image count',
         status: 'error',
-        message: `❌ 获取图片数量时出错: ${err.message}`,
+        message: `❌ Error getting image count: ${err.message}`,
       });
     }
 
@@ -80,7 +80,7 @@ export default function ImageUploadDiagnostics() {
         testResults.push({
           test: 'Insert permission',
           status: 'warning',
-          message: '⚠️ 没有产品可以测试插入',
+          message: '⚠️ No products available to test insert',
         });
       } else {
         // Try to insert a test image
@@ -100,7 +100,7 @@ export default function ImageUploadDiagnostics() {
           testResults.push({
             test: 'Insert permission',
             status: 'error',
-            message: `❌ 无法插入图片: ${error.message}`,
+            message: `❌ Unable to insert image: ${error.message}`,
             details: error,
           });
         } else {
@@ -115,7 +115,7 @@ export default function ImageUploadDiagnostics() {
           testResults.push({
             test: 'Insert permission',
             status: 'success',
-            message: '✅ 可以插入图片',
+            message: '✅ Can insert images',
           });
         }
       }
@@ -123,7 +123,7 @@ export default function ImageUploadDiagnostics() {
       testResults.push({
         test: 'Insert permission',
         status: 'error',
-        message: `❌ 测试插入时出错: ${err.message}`,
+        message: `❌ Error testing insert: ${err.message}`,
       });
     }
 
@@ -137,20 +137,20 @@ export default function ImageUploadDiagnostics() {
         testResults.push({
           test: 'Products count',
           status: 'error',
-          message: `❌ 无法获取产品数量: ${error.message}`,
+          message: `❌ Unable to get product count: ${error.message}`,
         });
       } else {
         testResults.push({
           test: 'Products count',
           status: 'success',
-          message: `✅ 当前有 ${count || 0} 个产品`,
+          message: `✅ Currently ${count || 0} products`,
         });
       }
     } catch (err: any) {
       testResults.push({
         test: 'Products count',
         status: 'error',
-        message: `❌ 获取产品数量时出错: ${err.message}`,
+        message: `❌ Error getting product count: ${err.message}`,
       });
     }
 
@@ -162,21 +162,19 @@ export default function ImageUploadDiagnostics() {
     setFixing(true);
 
     try {
-      // This would require running SQL via Supabase REST API
-      // For now, we'll provide instructions
       alert(
-        '🔧 修复步骤：\n\n' +
-        '1. 打开 Supabase SQL Editor\n' +
-        '2. 运行以下 SQL：\n\n' +
+        '🔧 Fix Steps:\n\n' +
+        '1. Open Supabase SQL Editor\n' +
+        '2. Run the following SQL:\n\n' +
         'ALTER TABLE product_images DISABLE ROW LEVEL SECURITY;\n\n' +
         'ALTER TABLE product_images \n' +
         'ALTER COLUMN image_url TYPE TEXT;\n\n' +
-        '3. 返回此页面重新测试\n\n' +
-        'SQL Editor 链接：\n' +
+        '3. Return to this page and test again\n\n' +
+        'SQL Editor link:\n' +
         'https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql'
       );
     } catch (err: any) {
-      alert(`❌ 修复失败: ${err.message}`);
+      alert(`❌ Fix failed: ${err.message}`);
     } finally {
       setFixing(false);
     }
@@ -190,7 +188,7 @@ export default function ImageUploadDiagnostics() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-heading text-xl text-chocolate flex items-center gap-2">
           <Database size={20} className="text-gold" />
-          图片上传诊断工具
+          Image Upload Diagnostics
         </h3>
         <div className="flex gap-2">
           <button
@@ -201,10 +199,10 @@ export default function ImageUploadDiagnostics() {
             {testing ? (
               <>
                 <Loader size={14} className="animate-spin" />
-                诊断中...
+                Testing...
               </>
             ) : (
-              <>🔍 运行诊断</>
+              <>🔍 Run Diagnostics</>
             )}
           </button>
           {hasErrors && (
@@ -213,7 +211,7 @@ export default function ImageUploadDiagnostics() {
               disabled={fixing}
               className="btn-primary flex items-center gap-2"
             >
-              🔧 查看修复步骤
+              🔧 View Fix Steps
             </button>
           )}
         </div>
@@ -249,7 +247,7 @@ export default function ImageUploadDiagnostics() {
                   {result.details && (
                     <details className="mt-2">
                       <summary className="text-xs text-coffee/50 cursor-pointer hover:text-chocolate">
-                        查看详情
+                        View Details
                       </summary>
                       <pre className="mt-2 p-2 bg-ivory rounded-sm text-xs overflow-x-auto">
                         {JSON.stringify(result.details, null, 2)}
@@ -271,22 +269,22 @@ export default function ImageUploadDiagnostics() {
           }`}>
             {allSuccess && (
               <p className="text-sage font-medium">
-                ✅ 所有测试通过！图片上传功能正常。
+                ✅ All tests passed! Image upload is working correctly.
               </p>
             )}
             {hasErrors && (
               <div>
                 <p className="text-blush font-medium mb-2">
-                  ❌ 发现 {results.filter(r => r.status === 'error').length} 个问题
+                  ❌ Found {results.filter(r => r.status === 'error').length} issue(s)
                 </p>
                 <p className="text-sm text-coffee/70">
-                  请点击"查看修复步骤"按钮获取修复说明。
+                  Please click the "View Fix Steps" button for instructions.
                 </p>
               </div>
             )}
             {!allSuccess && !hasErrors && (
               <p className="text-gold font-medium">
-                ⚠️ 有一些警告，但功能可能仍然正常。
+                ⚠️ Some warnings, but functionality may still work.
               </p>
             )}
           </div>
@@ -297,37 +295,37 @@ export default function ImageUploadDiagnostics() {
       {results.length === 0 && !testing && (
         <div className="text-center py-8">
           <Database size={48} className="mx-auto text-coffee/20 mb-4" />
-          <p className="text-coffee/60 mb-2">点击"运行诊断"检查图片上传功能</p>
+          <p className="text-coffee/60 mb-2">Click "Run Diagnostics" to check image upload functionality</p>
           <p className="text-xs text-coffee/40">
-            这将检查表结构、权限和插入功能
+            This will check table structure, permissions, and insert functionality
           </p>
         </div>
       )}
 
       {/* Help Section */}
       <div className="mt-6 pt-6 border-t border-beige/20">
-        <h4 className="text-sm font-medium text-chocolate mb-3">💡 常见问题</h4>
+        <h4 className="text-sm font-medium text-chocolate mb-3">💡 Common Issues</h4>
         <div className="space-y-2 text-xs text-coffee/60">
           <p>
-            <strong>问题：</strong> product_images 表中没有记录
+            <strong>Issue:</strong> No records in product_images table
           </p>
           <p className="pl-4">
-            <strong>解决方案：</strong> 运行 SQL 禁用 RLS：
+            <strong>Solution:</strong> Run SQL to disable RLS:
             <code className="block mt-1 p-2 bg-ivory rounded text-chocolate">
               ALTER TABLE product_images DISABLE ROW LEVEL SECURITY;
             </code>
           </p>
           <p className="mt-3">
-            <strong>问题：</strong> 图片太大无法上传
+            <strong>Issue:</strong> Image too large to upload
           </p>
           <p className="pl-4">
-            <strong>解决方案：</strong> 压缩图片到 1MB 以下，或使用更小的尺寸
+            <strong>Solution:</strong> Compress image to under 1MB, or use smaller dimensions
           </p>
           <p className="mt-3">
-            <strong>问题：</strong> image_url 字段类型不支持
+            <strong>Issue:</strong> image_url field type not supported
           </p>
           <p className="pl-4">
-            <strong>解决方案：</strong> 修改字段类型为 TEXT：
+            <strong>Solution:</strong> Change field type to TEXT:
             <code className="block mt-1 p-2 bg-ivory rounded text-chocolate">
               ALTER TABLE product_images ALTER COLUMN image_url TYPE TEXT;
             </code>
