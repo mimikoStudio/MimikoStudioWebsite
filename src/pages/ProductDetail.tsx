@@ -36,7 +36,7 @@ export default function ProductDetail() {
       if (error) throw error;
       setProduct(data);
     } catch (err) {
-      console.error('Error fetching product:', err);
+      // Error handled silently
     } finally {
       setLoading(false);
     }

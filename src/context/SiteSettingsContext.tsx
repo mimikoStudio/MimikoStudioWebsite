@@ -27,7 +27,6 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         .select('*');
 
       if (error) {
-        console.warn('Site settings table not found or not accessible, using defaults');
         setLoading(false);
         return;
       }
@@ -45,7 +44,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         setSettings({ ...defaultSiteSettings, ...settingsMap });
       }
     } catch (error) {
-      console.warn('Error loading site settings, using defaults:', error);
+      // Error loading site settings handled silently
     } finally {
       setLoading(false);
     }
@@ -74,7 +73,6 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       // Apply theme to document
       applyTheme(updatedSettings);
     } catch (error) {
-      console.error('Error updating settings:', error);
       throw error;
     }
   };
@@ -85,7 +83,6 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       setSettings(defaultSiteSettings);
       applyTheme(defaultSiteSettings);
     } catch (error) {
-      console.error('Error resetting settings:', error);
       throw error;
     }
   };

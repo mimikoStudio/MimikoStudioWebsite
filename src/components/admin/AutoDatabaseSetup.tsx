@@ -176,11 +176,9 @@ export default function AutoDatabaseSetup({ onComplete }: AutoSetupProps) {
         // If RPC function doesn't exist, we'll use direct table operations
         // The actual SQL will need to be run manually via Supabase dashboard
         // But we'll mark it as attempted
-        console.warn('SQL execution via RPC not available, using direct operations');
       }
     } catch (err) {
       // Silently continue - the setup will use direct operations
-      console.warn('Direct SQL execution not available');
     }
   };
 

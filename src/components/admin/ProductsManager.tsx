@@ -52,7 +52,7 @@ export default function ProductsManager() {
         }));
       }
     } catch (error) {
-      console.error('Error loading product images:', error);
+      // Error loading images handled silently
     }
   };
 
@@ -74,18 +74,11 @@ export default function ProductsManager() {
     const files = e.target.files;
     if (!files) return;
 
-    console.log('📸 Starting image upload...', { fileCount: files.length });
-
     const newImages: string[] = [];
     const errors: string[] = [];
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`Processing file ${i + 1}/${files.length}:`, {
-        name: file.name,
-        type: file.type,
-        size: `${(file.size / 1024).toFixed(2)} KB`
-      });
       
       // Validate file type
       if (!file.type.startsWith('image/')) {
@@ -102,10 +95,8 @@ export default function ProductsManager() {
 
       try {
         const base64 = await fileToBase64(file);
-        console.log(`✅ Converted ${file.name} to base64 (${base64.length} chars)`);
         newImages.push(base64);
       } catch (error: any) {
-        console.error(`❌ Error converting ${file.name}:`, error);
         errors.push(`${file.name}: ${error.message}`);
       }
     }
@@ -121,8 +112,6 @@ export default function ProductsManager() {
       ...prev,
       images: totalImages
     }));
-
-    console.log(`✅ Total images: ${totalImages.length}`);
 
     // Show success message
     if (newImages.length > 0) {
@@ -191,18 +180,12 @@ export default function ProductsManager() {
       }
 
       // Save images (base64) to database
-      console.log('💾 Saving images to database...', { imageCount: formData.images.length });
-      
       if (formData.images.length > 0) {
         try {
           await updateProductImages(productId, formData.images);
-          console.log('✅ Images saved successfully');
         } catch (imageError: any) {
-          console.error('❌ Failed to save images:', imageError);
           alert(`⚠️ Product saved but images failed to upload:\n\n${imageError.message}\n\nYou can edit the product later to add images.`);
         }
-      } else {
-        console.log('ℹ️ No images to save');
       }
 
       setShowForm(false);
@@ -211,55 +194,37 @@ export default function ProductsManager() {
       refetch();
       alert('✅ Product saved successfully!');
     } catch (error: any) {
-      console.error('❌ Error saving product:', error);
       alert('❌ Error: ' + error.message);
     }
   };
 
   const updateProductImages = async (productId: string, imageUrls: string[]) => {
-    console.log('📸 Updating product images...', { productId, imageCount: imageUrls.length });
-    
     try {
       // Delete existing images
-      console.log('🗑️ Deleting existing images...');
       const { error: deleteError } = await supabase
         .from('product_images')
         .delete()
         .eq('product_id', productId);
 
       if (deleteError) {
-        console.error('❌ Error deleting images:', deleteError);
         throw new Error(`Failed to delete old images: ${deleteError.message}`);
       }
 
       // Insert new images (base64 data URLs)
       if (imageUrls.length > 0) {
-        console.log(`📤 Inserting ${imageUrls.length} new images...`);
-        
-        const imageRecords = imageUrls.map((url, index) => {
-          console.log(`Image ${index + 1}: ${url.substring(0, 50)}... (${url.length} chars)`);
-          return {
-            product_id: productId,
-            image_url: url, // base64 data URL
-            alt_text: `Product image ${index + 1}`,
-            display_order: index,
-          };
-        });
+        const imageRecords = imageUrls.map((url, index) => ({
+          product_id: productId,
+          image_url: url,
+          alt_text: `Product image ${index + 1}`,
+          display_order: index,
+        }));
 
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('product_images')
           .insert(imageRecords)
           .select();
 
         if (error) {
-          console.error('❌ Error inserting images:', error);
-          console.error('Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
-          
           if (error.message.includes('row-level security')) {
             throw new Error('RLS policy is blocking image upload. Please disable RLS on product_images table.');
           }
@@ -270,14 +235,9 @@ export default function ProductsManager() {
           
           throw new Error(`Failed to save images: ${error.message}`);
         }
-
-        console.log(`✅ Successfully saved ${data?.length || 0} images`);
-      } else {
-        console.log('ℹ️ No images to save');
       }
     } catch (error: any) {
-      console.error('❌ Error in updateProductImages:', error);
-      throw error; // Re-throw to show error to user
+      throw error;
     }
   };
 
