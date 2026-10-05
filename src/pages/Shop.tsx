@@ -123,9 +123,51 @@ export default function Shop() {
             </div>
           )}
 
+          {/* Debug Info */}
+          {!loading && sortedProducts.length > 0 && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-sm">
+              <p className="text-sm text-blue-900 font-medium">🔍 Debug Info:</p>
+              <p className="text-xs text-blue-700 mt-1">
+                Total products: {sortedProducts.length} | 
+                Products with images: {sortedProducts.filter(p => p.images && p.images.length > 0).length} | 
+                Products without images: {sortedProducts.filter(p => !p.images || p.images.length === 0).length}
+              </p>
+              <button 
+                onClick={() => {
+                  console.log('=== PRODUCT DATA DEBUG ===');
+                  sortedProducts.forEach((p, i) => {
+                    console.log(`Product ${i + 1}:`, {
+                      id: p.id,
+                      name: p.name,
+                      images_count: p.images?.length || 0,
+                      first_image: p.images?.[0] ? {
+                        id: p.images[0].id,
+                        url_length: p.images[0].image_url?.length || 0,
+                        url_preview: p.images[0].image_url?.substring(0, 100) + '...'
+                      } : null
+                    });
+                  });
+                  alert('Check browser console (F12) for detailed product data');
+                }}
+                className="mt-2 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+              >
+                📊 View Product Data in Console
+              </button>
+            </div>
+          )}
+
           {!loading && sortedProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product, idx) => (
+              {sortedProducts.map((product, idx) => {
+                // Debug: Log image data for each product
+                if (product.images && product.images.length > 0) {
+                  console.log(`📸 Product "${product.name}" has ${product.images.length} image(s):`, {
+                    first_image_url_length: product.images[0].image_url?.length,
+                    first_image_url_preview: product.images[0].image_url?.substring(0, 50)
+                  });
+                }
+
+                return (
                 <Link key={product.id} to={`/product/${product.slug}`} className="card-luxury group block">
                   <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
                     {product.images && product.images.length > 0 && product.images[0]?.image_url ? (
@@ -133,11 +175,22 @@ export default function Shop() {
                         src={product.images[0].image_url} 
                         alt={product.name} 
                         className="w-full h-full object-cover product-image-hover"
+                        loading="lazy"
+                        onLoad={() => console.log(`✅ Image loaded for: ${product.name}`)}
                         onError={(e) => {
-                          console.error('Image failed to load:', product.images?.[0]?.image_url);
+                          console.error(`❌ Image failed to load for: ${product.name}`, {
+                            url: product.images?.[0]?.image_url?.substring(0, 100),
+                            url_length: product.images?.[0]?.image_url?.length,
+                            error: e
+                          });
+                          // Hide broken image and show emoji fallback
                           e.currentTarget.style.display = 'none';
-                          if (e.currentTarget.parentElement) {
-                            e.currentTarget.parentElement.innerHTML = `<span class="text-6xl">${productEmojis[idx % productEmojis.length]}</span>`;
+                          const parent = e.currentTarget.parentElement;
+                          if (parent && !parent.querySelector('.emoji-fallback')) {
+                            const emoji = document.createElement('div');
+                            emoji.className = 'emoji-fallback text-6xl';
+                            emoji.textContent = productEmojis[idx % productEmojis.length];
+                            parent.appendChild(emoji);
                           }
                         }}
                       />
@@ -200,7 +253,8 @@ export default function Shop() {
                     </a>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
