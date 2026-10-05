@@ -200,7 +200,17 @@ export default function ProductsManager() {
 
   const updateProductImages = async (productId: string, imageUrls: string[]) => {
     try {
-      // Delete existing images
+      // Step 1: Get old image URLs before deleting
+      const { data: oldImages, error: fetchError } = await supabase
+        .from('product_images')
+        .select('image_url')
+        .eq('product_id', productId);
+
+      if (fetchError) {
+        console.error('Failed to fetch old images:', fetchError);
+      }
+
+      // Step 2: Delete database records
       const { error: deleteError } = await supabase
         .from('product_images')
         .delete()
@@ -210,7 +220,39 @@ export default function ProductsManager() {
         throw new Error(`Failed to delete old images: ${deleteError.message}`);
       }
 
-      // Insert new images (base64 data URLs)
+      // Step 3: Safely clean up old storage files (only if not referenced by other products)
+      if (oldImages && oldImages.length > 0) {
+        for (const oldImg of oldImages) {
+          const oldUrl = oldImg.image_url;
+          
+          // Only process Supabase Storage URLs (not base64)
+          if (oldUrl && !oldUrl.startsWith('') && oldUrl.includes('supabase.co')) {
+            try {
+              // Check if this URL is still referenced by any other product
+              const { data: references } = await supabase
+                .from('product_images')
+                .select('id')
+                .eq('image_url', oldUrl)
+                .limit(1);
+
+              // Only delete if no other product references this image
+              if (!references || references.length === 0) {
+                // Extract path from URL
+                const urlParts = oldUrl.split('/storage/v1/object/public/');
+                if (urlParts.length > 1) {
+                  const storagePath = urlParts[1];
+                  await supabase.storage.from('product-images').remove([storagePath]);
+                }
+              }
+            } catch (cleanupError) {
+              // Silently fail cleanup - don't block the main operation
+              console.warn('Failed to cleanup old image:', cleanupError);
+            }
+          }
+        }
+      }
+
+      // Step 4: Insert new images (base64 data URLs)
       if (imageUrls.length > 0) {
         const imageRecords = imageUrls.map((url, index) => ({
           product_id: productId,
@@ -236,6 +278,9 @@ export default function ProductsManager() {
           throw new Error(`Failed to save images: ${error.message}`);
         }
       }
+
+      // Step 5: Invalidate cache by triggering a refetch
+      refetch();
     } catch (error: any) {
       throw error;
     }
