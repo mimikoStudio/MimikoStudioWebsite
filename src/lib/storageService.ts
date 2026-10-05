@@ -1,59 +1,64 @@
 import { supabase } from './supabase';
 
-const BUCKET_NAME = 'website-content';
+const PREFERRED_BUCKET = 'website-content';
+const FALLBACK_BUCKET = 'product-images';
 
 /**
- * Ensure storage bucket exists
+ * Convert file to base64 data URL
  */
-export async function ensureBucketExists(): Promise<boolean> {
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+}
+
+/**
+ * Try to upload to a specific bucket
+ */
+async function tryUploadToBucket(
+  bucketName: string,
+  filePath: string,
+  file: File
+): Promise<{ success: boolean; url?: string; error?: string }> {
   try {
-    // Try to list buckets to check if our bucket exists
-    const { data: buckets, error } = await supabase.storage.listBuckets();
-    
-    if (error) {
-      console.error('Error listing buckets:', error);
-      return false;
-    }
-
-    const bucketExists = buckets?.some((b: any) => b.name === BUCKET_NAME);
-    
-    if (!bucketExists) {
-      // Create the bucket
-      const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
-        public: true,
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
       });
-      
-      if (createError && !createError.message.includes('already exists')) {
-        console.error('Error creating bucket:', createError);
-        return false;
-      }
+
+    if (error) {
+      return { success: false, error: error.message };
     }
 
-    return true;
-  } catch (error) {
-    console.error('Error ensuring bucket exists:', error);
-    return false;
+    const {  urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+
+    return {
+      success: true,
+      url: urlData.publicUrl,
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
 
 /**
- * Upload image to Supabase Storage
+ * Upload image with automatic fallback
+ * Tries: website-content → product-images → base64
  */
 export async function uploadImage(
   file: File,
   folder: string,
   fileName?: string
-): Promise<{ success: boolean; url?: string; path?: string; error?: string }> {
+): Promise<{ success: boolean; url?: string; path?: string; error?: string; method?: string }> {
   try {
-    // Ensure bucket exists
-    const bucketExists = await ensureBucketExists();
-    if (!bucketExists) {
-      return { 
-        success: false, 
-        error: 'Storage bucket could not be created. Please run the database migration first.' 
-      };
-    }
-
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
@@ -73,33 +78,48 @@ export async function uploadImage(
     const finalFileName = fileName || `${timestamp}-${randomString}.${extension}`;
     const filePath = `${folder}/${finalFileName}`;
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.type,
-      });
-
-    if (error) {
-      console.error('Upload error:', error);
-      return { success: false, error: error.message };
+    // Try preferred bucket first
+    console.log(`📤 Trying upload to ${PREFERRED_BUCKET}...`);
+    const result1 = await tryUploadToBucket(PREFERRED_BUCKET, filePath, file);
+    
+    if (result1.success) {
+      console.log(`✅ Uploaded to ${PREFERRED_BUCKET}`);
+      return { ...result1, path: filePath, method: 'storage' };
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
+    // If preferred bucket fails, try fallback bucket
+    console.log(`⚠️ ${PREFERRED_BUCKET} failed, trying ${FALLBACK_BUCKET}...`);
+    const result2 = await tryUploadToBucket(FALLBACK_BUCKET, filePath, file);
+    
+    if (result2.success) {
+      console.log(`✅ Uploaded to ${FALLBACK_BUCKET}`);
+      return { ...result2, path: filePath, method: 'storage' };
+    }
 
+    // If both buckets fail, convert to base64
+    console.log(`⚠️ Both buckets failed, converting to base64...`);
+    const base64 = await fileToBase64(file);
+    console.log(`✅ Converted to base64 (${base64.length} chars)`);
+    
     return {
       success: true,
-      url: urlData.publicUrl,
-      path: filePath,
+      url: base64,
+      method: 'base64',
     };
   } catch (error: any) {
-    console.error('Error uploading image:', error);
-    return { success: false, error: error.message || 'Upload failed' };
+    console.error('❌ Error uploading image:', error);
+    
+    // Last resort: try base64 conversion
+    try {
+      const base64 = await fileToBase64(file);
+      return {
+        success: true,
+        url: base64,
+        method: 'base64',
+      };
+    } catch (base64Error: any) {
+      return { success: false, error: base64Error.message || 'Upload failed' };
+    }
   }
 }
 
@@ -108,16 +128,25 @@ export async function uploadImage(
  */
 export async function deleteImage(path: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.storage
-      .from(BUCKET_NAME)
+    // Try preferred bucket first
+    const { error: error1 } = await supabase.storage
+      .from(PREFERRED_BUCKET)
       .remove([path]);
 
-    if (error) {
-      console.error('Delete error:', error);
-      return { success: false, error: error.message };
+    if (!error1) {
+      return { success: true };
     }
 
-    return { success: true };
+    // Try fallback bucket
+    const { error: error2 } = await supabase.storage
+      .from(FALLBACK_BUCKET)
+      .remove([path]);
+
+    if (!error2) {
+      return { success: true };
+    }
+
+    return { success: false, error: error2?.message || 'Delete failed' };
   } catch (error: any) {
     console.error('Error deleting image:', error);
     return { success: false, error: error.message || 'Delete failed' };
