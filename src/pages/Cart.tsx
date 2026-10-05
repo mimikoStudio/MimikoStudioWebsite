@@ -3,6 +3,7 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useState } from 'react';
 import { supabase, createWhatsAppLink } from '../lib/supabase';
+import { validateCartStock, createOrderWithStockUpdate } from '../lib/stockValidation';
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
@@ -25,32 +26,39 @@ export default function Cart() {
     e.preventDefault();
 
     try {
-      // Create order in database
+      // 步骤1：验证所有产品的库存
+      const stockValidation = await validateCartStock(
+        items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        }))
+      );
+
+      if (!stockValidation.allValid) {
+        const failedItems = stockValidation.results.filter(r => !r.valid);
+        const errorMessages = failedItems.map(r => r.message).join('\n');
+        alert(`库存不足:\n\n${errorMessages}\n\n请调整数量后重试。`);
+        return;
+      }
+
+      // 步骤2：创建订单（带库存更新）
       const orderNumber = `ORD-${Date.now()}`;
       
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert([{
-          order_number: orderNumber,
-          customer_name: checkoutData.name,
-          email: checkoutData.email,
-          phone: checkoutData.phone,
-          shipping_address: `${checkoutData.address}, ${checkoutData.city} - ${checkoutData.pincode}`,
-          subtotal: totalPrice,
-          shipping_fee: shippingFee,
-          discount_amount: 0,
-          total_amount: finalTotal,
-          payment_status: 'pending',
-          order_status: 'pending',
-        }])
-        .select()
-        .single();
+      const orderData = {
+        order_number: orderNumber,
+        customer_name: checkoutData.name,
+        email: checkoutData.email,
+        phone: checkoutData.phone,
+        shipping_address: `${checkoutData.address}, ${checkoutData.city} - ${checkoutData.pincode}`,
+        subtotal: totalPrice,
+        shipping_fee: shippingFee,
+        discount_amount: 0,
+        total_amount: finalTotal,
+        payment_status: 'pending',
+        order_status: 'pending',
+      };
 
-      if (orderError) throw orderError;
-
-      // Add order items
       const orderItems = items.map(item => ({
-        order_id: order.id,
         product_id: item.product.id,
         product_name: item.product.name,
         unit_price: item.product.sale_price || item.product.price,
@@ -61,11 +69,12 @@ export default function Cart() {
         },
       }));
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+      const result = await createOrderWithStockUpdate(orderData, orderItems);
 
-      if (itemsError) throw itemsError;
+      if (!result.success) {
+        alert(`订单创建失败: ${result.error}`);
+        return;
+      }
 
       setOrderPlaced(true);
       clearCart();
@@ -177,19 +186,36 @@ export default function Cart() {
                     </button>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                        onClick={async () => {
+                          const result = await updateQuantity(item.product.id, item.quantity - 1);
+                          if (!result.success) {
+                            alert(result.message);
+                          }
+                        }}
                         className="w-8 h-8 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors"
                       >
                         <Minus size={14} />
                       </button>
                       <span className="w-8 text-center text-chocolate">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        className="w-8 h-8 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors"
+                        onClick={async () => {
+                          const result = await updateQuantity(item.product.id, item.quantity + 1);
+                          if (!result.success) {
+                            alert(result.message);
+                          }
+                        }}
+                        disabled={item.quantity >= item.product.stock_quantity}
+                        className="w-8 h-8 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
+                    {/* Stock Warning */}
+                    {item.quantity >= item.product.stock_quantity && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        Max: {item.product.stock_quantity} available
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

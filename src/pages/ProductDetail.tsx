@@ -4,6 +4,7 @@ import { ArrowLeft, Heart, ShoppingBag, Share2, MessageCircle } from 'lucide-rea
 import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabase';
 import { createWhatsAppLink } from '../lib/supabase';
+import { getStockStatus } from '../lib/stockValidation';
 import type { Product } from '../types';
 
 export default function ProductDetail() {
@@ -160,6 +161,17 @@ export default function ProductDetail() {
               )}
             </div>
 
+            {/* Stock Status */}
+            {(() => {
+              const stockStatus = getStockStatus(product.stock_quantity);
+              return (
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-sm ${stockStatus.color}`}>
+                  <span>{stockStatus.icon}</span>
+                  <span className="text-sm font-medium">{stockStatus.label}</span>
+                </div>
+              );
+            })()}
+
             {/* Description */}
             {product.description && (
               <div className="border-t border-beige/30 pt-6">
@@ -218,12 +230,13 @@ export default function ProductDetail() {
             {/* Quantity */}
             <div>
               <p className="text-xs font-label tracking-wider uppercase text-coffee/70 mb-3">
-                Quantity
+                Quantity {product.stock_quantity > 0 && `(Max: ${product.stock_quantity})`}
               </p>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-10 h-10 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors"
+                  disabled={product.stock_quantity === 0}
+                  className="w-10 h-10 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   -
                 </button>
@@ -231,8 +244,9 @@ export default function ProductDetail() {
                   {quantity}
                 </span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-10 h-10 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors"
+                  onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
+                  disabled={product.stock_quantity === 0 || quantity >= product.stock_quantity}
+                  className="w-10 h-10 border border-beige rounded-sm flex items-center justify-center hover:border-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   +
                 </button>
@@ -242,11 +256,17 @@ export default function ProductDetail() {
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4">
               <button
-                onClick={() => addItem(product, quantity, selectedSize, selectedColor)}
-                className="btn-primary flex-1 flex items-center justify-center gap-2"
+                onClick={async () => {
+                  const result = await addItem(product, quantity, selectedSize, selectedColor);
+                  if (!result.success) {
+                    alert(result.message);
+                  }
+                }}
+                disabled={product.stock_quantity === 0}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBag size={18} />
-                Add to Cart
+                {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={() => toggleWishlist(product.id)}
