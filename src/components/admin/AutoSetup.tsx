@@ -289,85 +289,75 @@ export default function AutoSetup() {
     });
   };
 
+  // Don't render anything if setup not needed or already complete
   if (!needsSetup && !isComplete) {
     return null;
   }
 
+  // Show success message briefly, then auto-close
   if (isComplete) {
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+    
     return (
-      <div className="fixed inset-0 bg-chocolate/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-pearl rounded-sm max-w-2xl w-full p-8">
-          <div className="text-center mb-6">
-            <CheckCircle size={64} className="mx-auto text-sage mb-4" />
-            <h2 className="text-2xl font-heading text-chocolate mb-2">
-              Setup Complete!
-            </h2>
-            <p className="text-coffee/60">
-              All tables and storage buckets have been created successfully.
-            </p>
+      <div className="fixed top-4 right-4 bg-sage/10 border border-sage/30 rounded-lg p-4 shadow-lg z-50 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <CheckCircle size={24} className="text-sage" />
+          <div>
+            <p className="font-medium text-chocolate">Setup Complete!</p>
+            <p className="text-sm text-coffee/60">Reloading...</p>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-primary w-full"
-          >
-            Continue to Admin Panel
-          </button>
         </div>
       </div>
     );
   }
 
+  // Show non-blocking setup button in corner
   return (
-    <div className="fixed inset-0 bg-chocolate/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-pearl rounded-sm max-w-2xl w-full p-8">
-        <div className="text-center mb-6">
-          <AlertCircle size={48} className="mx-auto text-gold mb-4" />
-          <h2 className="text-2xl font-heading text-chocolate mb-2">
-            Database Setup Required
-          </h2>
-          <p className="text-coffee/60 mb-4">
-            Some database tables and storage buckets need to be created.
-            <br />
-            Click the button below to set up automatically.
-          </p>
-        </div>
-
-        {setupStatus.length > 0 && (
-          <div className="mb-6 space-y-2 max-h-64 overflow-y-auto">
-            {setupStatus.map((status, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-ivory rounded-sm">
-                {status.status === 'running' && (
-                  <Loader size={16} className="text-gold animate-spin mt-0.5" />
-                )}
-                {status.status === 'success' && (
-                  <CheckCircle size={16} className="text-sage mt-0.5" />
-                )}
-                {status.status === 'error' && (
-                  <AlertCircle size={16} className="text-blush mt-0.5" />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-chocolate">{status.step}</p>
-                  <p className="text-xs text-coffee/60">{status.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
+    <div className="fixed bottom-4 right-4 z-50">
+      {!isRunning ? (
         <button
-          onClick={runSetup}
-          disabled={isRunning}
-          className="btn-primary w-full"
+          onClick={() => {
+            const confirmed = window.confirm(
+              'Database setup is required. Would you like to run the automatic setup now?\n\nThis will create all required tables and storage buckets.'
+            );
+            if (confirmed) {
+              runSetup();
+            }
+          }}
+          className="bg-gold text-chocolate px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
         >
-          {isRunning ? 'Setting Up...' : 'Run Automatic Setup'}
+          <AlertCircle size={20} />
+          <span className="font-medium">Setup Database</span>
         </button>
-
-        <p className="text-xs text-coffee/50 text-center mt-4">
-          This will create all required tables and storage buckets.
-          <br />
-          It's safe to run multiple times.
-        </p>
-      </div>
+      ) : (
+        <div className="bg-pearl border border-beige/30 rounded-lg p-4 shadow-lg min-w-[300px]">
+          <div className="flex items-center gap-3 mb-3">
+            <Loader size={20} className="text-gold animate-spin" />
+            <p className="font-medium text-chocolate">Setting up database...</p>
+          </div>
+          
+          {setupStatus.length > 0 && (
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {setupStatus.slice(-3).map((status, index) => (
+                <div key={index} className="flex items-start gap-2 text-xs">
+                  {status.status === 'running' && (
+                    <Loader size={12} className="text-gold animate-spin mt-0.5" />
+                  )}
+                  {status.status === 'success' && (
+                    <CheckCircle size={12} className="text-sage mt-0.5" />
+                  )}
+                  {status.status === 'error' && (
+                    <AlertCircle size={12} className="text-blush mt-0.5" />
+                  )}
+                  <span className="text-coffee/70">{status.step}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
