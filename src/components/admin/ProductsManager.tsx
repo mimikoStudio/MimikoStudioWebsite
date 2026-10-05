@@ -337,21 +337,22 @@ export default function ProductsManager() {
   };
 
   const publishAllProducts = async () => {
-    if (!confirm('Publish all products? This will make all draft products visible on the website.')) return;
+    if (!confirm('⚠️ Publish all draft products?\n\nThis will make ALL draft products visible on the website immediately.\n\nContinue?')) return;
     
     setPublishingAll(true);
     try {
-      const { error } = await supabase
+      const { data, error, count } = await supabase
         .from('products')
         .update({ is_published: true })
-        .eq('is_published', false);
+        .eq('is_published', false)
+        .select();
       
       if (error) throw error;
       
-      alert('✅ All products published successfully!');
+      alert(`✅ Successfully published ${count || data?.length || 0} product(s)! They will now appear on the website.`);
       refetch();
     } catch (error: any) {
-      alert('Error: ' + error.message);
+      alert('❌ Error publishing products: ' + error.message);
     } finally {
       setPublishingAll(false);
     }
@@ -374,14 +375,22 @@ export default function ProductsManager() {
             <button
               onClick={publishAllProducts}
               disabled={publishingAll}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-primary flex items-center gap-2 animate-pulse"
+              style={{ animationDuration: '2s' }}
             >
-              {publishingAll ? 'Publishing...' : `🚀 Publish All (${draftCount})`}
+              {publishingAll ? (
+                <>
+                  <div className="spinner-luxury w-4 h-4" />
+                  Publishing...
+                </>
+              ) : (
+                <>🚀 Publish All ({draftCount})</>
+              )}
             </button>
           )}
           <button
             onClick={() => { setShowForm(true); setEditingProduct(null); resetForm(); }}
-            className="btn-primary flex items-center gap-2"
+            className="btn-secondary flex items-center gap-2"
           >
             <Plus size={16} /> Add Product
           </button>
@@ -389,7 +398,9 @@ export default function ProductsManager() {
       </div>
 
       {/* Status Info */}
-      <div className="bg-pearl border border-beige/20 rounded-sm p-4 mb-6">
+      <div className={`border rounded-sm p-4 mb-6 ${
+        draftCount > 0 ? 'bg-gold/10 border-gold/30' : 'bg-sage/10 border-sage/30'
+      }`}>
         <div className="flex items-center justify-between text-sm">
           <div className="flex gap-6">
             <span className="text-coffee/60">
@@ -407,8 +418,18 @@ export default function ProductsManager() {
           )}
         </div>
         {draftCount > 0 && (
-          <p className="text-xs text-gold mt-2">
-            💡 Draft products are hidden from the website. Click "Publish All" or click individual status badges to publish them.
+          <div className="mt-3 p-3 bg-white/50 rounded-sm border border-gold/20">
+            <p className="text-sm text-chocolate font-medium mb-1">
+              ⚠️ {draftCount} product{draftCount > 1 ? 's' : ''} not showing on website!
+            </p>
+            <p className="text-xs text-coffee/70">
+              Draft products are hidden from customers. Click <strong>"🚀 Publish All"</strong> above or click individual status badges to make them visible on the website.
+            </p>
+          </div>
+        )}
+        {draftCount === 0 && publishedCount > 0 && (
+          <p className="text-xs text-sage mt-2">
+            ✅ All products are published and visible on the website!
           </p>
         )}
       </div>
