@@ -31,6 +31,20 @@ export function useProducts(filters?: {
     try {
       console.log('🔍 Fetching products...', { showAll: filters?.showAll });
       
+      // First, try a simple query to test connection
+      const { data: testData, error: testError } = await supabase
+        .from('products')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('❌ Database connection test failed:', testError);
+        // If RLS error, try without filters
+        if (testError.message.includes('row-level security')) {
+          console.warn('⚠️ RLS error detected. Trying alternative query...');
+        }
+      }
+      
       let query = supabase
         .from('products')
         .select('*, product_images(*), categories(*)')
@@ -51,14 +65,30 @@ export function useProducts(filters?: {
       
       if (fetchError) {
         console.error('❌ Error fetching products:', fetchError);
+        console.error('Error details:', {
+          message: fetchError.message,
+          details: fetchError.details,
+          hint: fetchError.hint,
+          code: fetchError.code
+        });
+        
+        // If RLS error, return empty array but don't throw
+        if (fetchError.message.includes('row-level security')) {
+          console.warn('⚠️ RLS policy blocking access. Please run the RLS fix SQL.');
+          setProducts([]);
+          setError('Database access blocked by security policy. Please contact admin.');
+          setLoading(false);
+          return;
+        }
+        
         throw fetchError;
       }
       
-      console.log(`✅ Found ${data?.length || 0} products`);
+      console.log(`✅ Found ${data?.length || 0} products`, data);
       setProducts(data || []);
     } catch (err: any) {
       console.error('❌ Error in fetchProducts:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to fetch products');
       setProducts([]);
     } finally {
       setLoading(false);
