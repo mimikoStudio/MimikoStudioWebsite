@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, MessageSquare, Calendar, ShoppingCart,
-  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink, TrendingUp
+  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink, TrendingUp, Image as ImageIcon, Palette
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useDashboardStats, useInquiries, useAppointments, useProducts } from '../../hooks/useData';
@@ -13,8 +13,11 @@ import CategoriesManager from '../../components/admin/CategoriesManager';
 import SiteSettingsManager from '../../components/admin/SiteSettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
 import ReportsDashboard from '../../components/admin/ReportsDashboard';
+import HeroBannerManager from '../../components/admin/HeroBannerManager';
+import GalleryManager from '../../components/admin/GalleryManager';
+import CollectionsManager from '../../components/admin/CollectionsManager';
 
-type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'settings';
+type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'settings';
 
 const COMPLETE_SETUP_SQL = `-- ============================================
 -- MIMIKO STUDIO - COMPLETE DATABASE SETUP
@@ -169,6 +172,9 @@ export default function AdminDashboard() {
     { id: 'overview' as Tab, label: '📊 Overview', icon: <LayoutDashboard size={16} /> },
     { id: 'products' as Tab, label: '🛍️ Products', icon: <Package size={16} /> },
     { id: 'categories' as Tab, label: '🗂️ Categories', icon: <FolderTree size={16} /> },
+    { id: 'hero-banners' as Tab, label: '🎨 Hero Banners', icon: <Palette size={16} /> },
+    { id: 'gallery' as Tab, label: '🖼️ Gallery', icon: <ImageIcon size={16} /> },
+    { id: 'collections' as Tab, label: '💎 Collections', icon: <Palette size={16} /> },
     { id: 'inquiries' as Tab, label: '💌 Inquiries', icon: <MessageSquare size={16} /> },
     { id: 'appointments' as Tab, label: '📅 Appointments', icon: <Calendar size={16} /> },
     { id: 'orders' as Tab, label: '📦 Orders', icon: <ShoppingCart size={16} /> },
@@ -224,6 +230,9 @@ export default function AdminDashboard() {
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'products' && <ProductsManager />}
         {activeTab === 'categories' && <CategoriesManager />}
+        {activeTab === 'hero-banners' && <HeroBannerManager />}
+        {activeTab === 'gallery' && <GalleryManager />}
+        {activeTab === 'collections' && <CollectionsManager />}
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
         {activeTab === 'orders' && <OrdersManager />}

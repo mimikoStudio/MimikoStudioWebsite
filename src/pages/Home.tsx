@@ -1,108 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { INSTAGRAM_URL } from '../lib/supabase';
+import HeroCarousel from '../components/HeroCarousel';
 
 export default function Home() {
   return (
     <div style={{ overflow: 'hidden', backgroundColor: '#FFF5E9' }}>
-      {/* Hero Section */}
-      <section style={{ 
-        position: 'relative', 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        paddingTop: '5rem',
-        backgroundColor: '#4B2818'
-      }}>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(135deg, #4B2818 0%, #6B3E28 50%, #4B2818 100%)'
-        }}>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            opacity: 0.3,
-            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(213,170,100,0.3) 0%, transparent 50%),
-                             radial-gradient(circle at 80% 20%, rgba(242,160,180,0.15) 0%, transparent 40%),
-                             radial-gradient(circle at 60% 80%, rgba(213,170,100,0.2) 0%, transparent 40%)`
-          }} />
-        </div>
-
-        <div style={{ 
-          position: 'relative', 
-          zIndex: 10, 
-          maxWidth: '80rem', 
-          margin: '0 auto', 
-          padding: '8rem 1rem', 
-          width: '100%'
-        }}>
-          <div style={{ maxWidth: '48rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
-              <div style={{ height: '1px', width: '3rem', backgroundColor: '#D5AA64' }} />
-              <span style={{ color: '#D5AA64', fontSize: '0.75rem', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
-                Handcrafted Fabric Art
-              </span>
-            </div>
-            
-            <h1 style={{ 
-              fontFamily: 'Cormorant Garamond, serif', 
-              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', 
-              fontWeight: 300, 
-              color: '#FFF5E9', 
-              lineHeight: 1.2, 
-              marginBottom: '1rem' 
-            }}>
-              Where Art Meets
-            </h1>
-            <h1 style={{ 
-              fontFamily: 'Cormorant Garamond, serif', 
-              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', 
-              fontWeight: 300, 
-              fontStyle: 'italic', 
-              color: '#D5AA64', 
-              lineHeight: 1.2, 
-              marginBottom: '1.5rem' 
-            }}>
-              Elegance.
-            </h1>
-            
-            <p style={{ 
-              color: 'rgba(255,245,233,0.7)', 
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)', 
-              fontWeight: 300, 
-              lineHeight: 1.6, 
-              maxWidth: '36rem', 
-              marginBottom: '1rem' 
-            }}>
-              Hand-Painted Creations, Made With Love.
-            </p>
-            <p style={{ 
-              color: 'rgba(255,245,233,0.5)', 
-              fontSize: '1rem', 
-              lineHeight: 1.6, 
-              maxWidth: '32rem', 
-              marginBottom: '3rem' 
-            }}>
-              Explore the beauty of personalized fabric art, thoughtfully designed to express your unique style.
-            </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <Link to="/collections" className="btn-primary group" style={{ display: 'inline-flex' }}>
-                ✨ Explore Our Collection
-                <ArrowRight size={14} style={{ marginLeft: '0.5rem' }} />
-              </Link>
-              <Link to="/custom-creations" className="btn-secondary" style={{ 
-                display: 'inline-flex',
-                borderColor: 'rgba(255,245,233,0.4)', 
-                color: '#FFF5E9' 
-              }}>
-                🎨 Create Your Own Design
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Dynamic Hero Carousel */}
+      <HeroCarousel />
 
       {/* Welcome Section */}
       <section style={{ padding: '6rem 1rem', backgroundColor: '#FFF5E9' }}>

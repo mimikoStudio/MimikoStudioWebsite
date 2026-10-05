@@ -1,40 +1,88 @@
-import React, { useState } from 'react';
-import { INSTAGRAM_URL } from '../lib/supabase';
-
-const galleryItems = [
-  { id: 1, emoji: '🌸', title: 'Floral Tote Bag', category: 'Bags', color: 'from-blush/30 to-rosegold/20' },
-  { id: 2, emoji: '👗', title: 'Hand-Painted Kurti', category: 'Clothing', color: 'from-champagne/20 to-beige/30' },
-  { id: 3, emoji: '🎨', title: 'Abstract Art Saree', category: 'Clothing', color: 'from-sage/20 to-ivory' },
-  { id: 4, emoji: '👜', title: 'Designer Canvas Bag', category: 'Bags', color: 'from-rosegold/20 to-blush/20' },
-  { id: 5, emoji: '🧣', title: 'Custom Dupatta', category: 'Clothing', color: 'from-champagne/10 to-champagne/20' },
-  { id: 6, emoji: '🛋️', title: 'Botanical Cushions', category: 'Home Decor', color: 'from-sage/20 to-beige/20' },
-  { id: 7, emoji: '🎀', title: 'Fabric Scrunchie Set', category: 'Small Creations', color: 'from-blush/30 to-champagne/10' },
-  { id: 8, emoji: '🧥', title: 'Painted Denim Jacket', category: 'Clothing', color: 'from-espresso/5 to-champagne/10' },
-  { id: 9, emoji: '🎁', title: 'Custom Gift Set', category: 'Gifts', color: 'from-champagne/20 to-rosegold/10' },
-  { id: 10, emoji: '👟', title: 'Art Sneakers', category: 'Accessories', color: 'from-beige/30 to-champagne/10' },
-  { id: 11, emoji: '🌺', title: 'Tropical Tote', category: 'Bags', color: 'from-sage/20 to-blush/10' },
-  { id: 12, emoji: '✨', title: 'Personalized Pouch', category: 'Gifts', color: 'from-champagne/20 to-beige/20' },
-];
-
-const filterCategories = ['All', 'Clothing', 'Bags', 'Home Decor', 'Accessories', 'Gifts', 'Small Creations'];
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { getActiveGalleryCategories, getActiveGalleryImages, GalleryCategory, GalleryImage } from '../lib/contentService';
 
 export default function Gallery() {
-  const [activeFilter, setActiveFilter] = useState('All');
+  const { slug } = useParams<{ slug?: string }>();
+  const [categories, setCategories] = useState<GalleryCategory[]>([]);
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
 
-  const filtered = activeFilter === 'All'
-    ? galleryItems
-    : galleryItems.filter(item => item.category === activeFilter);
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (slug) {
+      setSelectedCategory(slug);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    loadImages();
+  }, [selectedCategory]);
+
+  const loadCategories = async () => {
+    setLoading(true);
+    const data = await getActiveGalleryCategories();
+    setCategories(data);
+    setLoading(false);
+  };
+
+  const loadImages = async () => {
+    const categoryId = selectedCategory === 'all' ? undefined : selectedCategory;
+    const data = await getActiveGalleryImages(categoryId);
+    setImages(data);
+  };
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+  };
+
+  const openLightbox = (image: GalleryImage) => {
+    setSelectedImage(image);
+  };
+
+  const closeLightbox = () => {
+    setSelectedImage(null);
+  };
+
+  const goToNextImage = () => {
+    if (!selectedImage) return;
+    const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+    const nextIndex = (currentIndex + 1) % images.length;
+    setSelectedImage(images[nextIndex]);
+  };
+
+  const goToPreviousImage = () => {
+    if (!selectedImage) return;
+    const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+    const prevIndex = (currentIndex - 1 + images.length) % images.length;
+    setSelectedImage(images[prevIndex]);
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-20 min-h-screen bg-ivory flex items-center justify-center">
+        <div className="spinner-luxury" />
+      </div>
+    );
+  }
 
   return (
     <div className="pt-20">
-      {/* Hero */}
+      {/* Hero Section */}
       <section className="py-24 bg-gradient-to-br from-chocolate to-coffee relative">
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: `radial-gradient(circle at 50% 50%, rgba(213,170,100,0.3) 0%, transparent 60%)`
         }} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-gold text-xs font-label tracking-[0.3em] uppercase">📸 Portfolio</span>
-          <h1 className="font-heading text-4xl sm:text-5xl font-light text-ivory mt-4 mb-6">Gallery</h1>
+          <h1 className="font-heading text-4xl sm:text-5xl font-light text-ivory mt-4 mb-6">
+            Gallery
+          </h1>
           <div className="gold-divider w-24 mx-auto mb-6" />
           <p className="text-ivory/60 max-w-2xl mx-auto">
             A showcase of our handcrafted creations — each piece unique, each story beautiful.
@@ -42,60 +90,148 @@ export default function Gallery() {
         </div>
       </section>
 
-      {/* Gallery Grid */}
-      <section className="py-20 bg-ivory">
+      {/* Category Filters */}
+      <section className="py-12 bg-ivory">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Filters */}
-          <div className="flex flex-wrap justify-center gap-2 mb-12">
-            {filterCategories.map(cat => (
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            <button
+              onClick={() => handleCategoryChange('all')}
+              className={`px-6 py-3 rounded-sm text-sm font-label tracking-wider uppercase transition-all ${
+                selectedCategory === 'all'
+                  ? 'bg-gold text-white'
+                  : 'bg-pearl text-coffee/60 hover:bg-cream/50 border border-beige/20'
+              }`}
+            >
+              All
+            </button>
+            {categories.map((category) => (
               <button
-                key={cat}
-                onClick={() => setActiveFilter(cat)}
-                className={`px-4 py-2 text-xs font-label tracking-wider uppercase rounded-sm border transition-all duration-300 ${
-                  activeFilter === cat
-                    ? 'bg-gold border-gold text-white'
-                    : 'border-beige text-coffee/60 hover:border-gold hover:text-gold'
+                key={category.id}
+                onClick={() => handleCategoryChange(category.id)}
+                className={`px-6 py-3 rounded-sm text-sm font-label tracking-wider uppercase transition-all ${
+                  selectedCategory === category.id
+                    ? 'bg-gold text-white'
+                    : 'bg-pearl text-coffee/60 hover:bg-cream/50 border border-beige/20'
                 }`}
               >
-                {cat}
+                {category.name}
               </button>
             ))}
           </div>
 
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filtered.map(item => (
-              <div key={item.id} className="card-luxury group cursor-pointer">
-                <div className={`aspect-square bg-gradient-to-br ${item.color} flex items-center justify-center relative overflow-hidden`}>
-                  <span className="text-6xl group-hover:scale-110 transition-transform duration-500">{item.emoji}</span>
-                  <div className="absolute inset-0 bg-espresso/0 group-hover:bg-espresso/20 transition-all duration-300 flex items-end justify-start p-4">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <p className="text-pearl text-sm font-medium">{item.title}</p>
-                      <p className="text-pearl/70 text-xs">{item.category}</p>
+          {/* Images Grid */}
+          {images.length > 0 ? (
+            <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+              {images.map((image, index) => (
+                <div
+                  key={image.id}
+                  className="break-inside-avoid group cursor-pointer"
+                  onClick={() => openLightbox(image)}
+                >
+                  <div className="relative overflow-hidden rounded-sm bg-pearl border border-beige/20">
+                    <img
+                      src={image.image_url}
+                      alt={image.alt_text || image.title || 'Gallery image'}
+                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-chocolate/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        {image.title && (
+                          <h3 className="font-heading text-lg text-ivory mb-1">
+                            {image.title}
+                          </h3>
+                        )}
+                        {image.description && (
+                          <p className="text-sm text-ivory/80 line-clamp-2">
+                            {image.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    {image.is_featured && (
+                      <div className="absolute top-3 right-3 px-2 py-1 bg-gold text-white text-xs rounded-sm">
+                        Featured
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Instagram CTA */}
-          <div className="mt-16 text-center">
-            <p className="text-espresso/60 mb-4">Follow us for more creations and behind-the-scenes content</p>
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-luxury inline-flex items-center gap-2"
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-              </svg>
-              Follow @mimiko.studio24
-            </a>
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <span className="text-6xl block mb-4">🖼️</span>
+              <p className="text-coffee/40 text-lg">No images found in this category.</p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Lightbox */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-chocolate/95 z-50 flex items-center justify-center p-4"
+          onClick={closeLightbox}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
+            className="absolute top-4 right-4 w-12 h-12 bg-ivory/10 hover:bg-ivory/20 rounded-full flex items-center justify-center text-ivory transition-all"
+          >
+            ✕
+          </button>
+
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPreviousImage();
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-ivory/10 hover:bg-ivory/20 rounded-full flex items-center justify-center text-ivory transition-all"
+              >
+                ←
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToNextImage();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-ivory/10 hover:bg-ivory/20 rounded-full flex items-center justify-center text-ivory transition-all"
+              >
+                →
+              </button>
+            </>
+          )}
+
+          <div
+            className="max-w-5xl max-h-[90vh] flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedImage.image_url}
+              alt={selectedImage.alt_text || selectedImage.title || 'Gallery image'}
+              className="max-w-full max-h-[80vh] object-contain rounded-sm"
+            />
+            {(selectedImage.title || selectedImage.description) && (
+              <div className="mt-4 text-center max-w-2xl">
+                {selectedImage.title && (
+                  <h3 className="font-heading text-2xl text-ivory mb-2">
+                    {selectedImage.title}
+                  </h3>
+                )}
+                {selectedImage.description && (
+                  <p className="text-ivory/80">
+                    {selectedImage.description}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
