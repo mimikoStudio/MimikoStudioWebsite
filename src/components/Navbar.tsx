@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Search, Heart, ShoppingBag, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const navLinks = [
   { label: '🏠 Home', path: '/' },
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { totalItems } = useCart();
+  const { settings } = useSiteSettings();
   const location = useLocation();
 
   useEffect(() => {
@@ -42,15 +44,33 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cream to-beige/50 flex items-center justify-center border border-gold/20 group-hover:border-gold/40 transition-all shadow-sm">
-              <span className="text-xl" role="img" aria-label="Mimiko Studio">🎨</span>
-            </div>
+            {settings.logo_url ? (
+              <img 
+                src={settings.logo_url} 
+                alt={settings.site_name}
+                className="h-11 w-auto object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const fallback = document.createElement('div');
+                    fallback.className = 'w-11 h-11 rounded-full bg-gradient-to-br from-cream to-beige/50 flex items-center justify-center border border-gold/20';
+                    fallback.innerHTML = '<span class="text-xl" role="img" aria-label="Mimiko Studio">🎨</span>';
+                    parent.insertBefore(fallback, parent.firstChild);
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cream to-beige/50 flex items-center justify-center border border-gold/20 group-hover:border-gold/40 transition-all shadow-sm">
+                <span className="text-xl" role="img" aria-label="Mimiko Studio">🎨</span>
+              </div>
+            )}
             <div className="hidden sm:block">
               <h1 className={`font-heading text-xl font-semibold tracking-wide ${textColor}`}>
-                Mimiko Studio
+                {settings.site_name}
               </h1>
               <p className={`text-[10px] tracking-[0.25em] uppercase ${accentColor}`}>
-                Fabric Art
+                {settings.site_tagline || 'Fabric Art'}
               </p>
             </div>
           </Link>

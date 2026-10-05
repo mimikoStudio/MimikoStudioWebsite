@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useState } from 'react';
 import { supabase, createWhatsAppLink } from '../lib/supabase';
 import { validateCartStock, createOrderWithStockUpdate } from '../lib/stockValidation';
+import { getImageUrl } from '../lib/imageUtils';
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
@@ -26,7 +27,7 @@ export default function Cart() {
     e.preventDefault();
 
     try {
-      // 步骤1：验证所有产品的库存
+      // Step 1: Validate stock for all products
       const stockValidation = await validateCartStock(
         items.map(item => ({
           productId: item.product.id,
@@ -37,11 +38,11 @@ export default function Cart() {
       if (!stockValidation.allValid) {
         const failedItems = stockValidation.results.filter(r => !r.valid);
         const errorMessages = failedItems.map(r => r.message).join('\n');
-        alert(`库存不足:\n\n${errorMessages}\n\n请调整数量后重试。`);
+        alert(`Insufficient stock:\n\n${errorMessages}\n\nPlease adjust quantities and try again.`);
         return;
       }
 
-      // 步骤2：创建订单（带库存更新）
+      // Step 2: Create order with stock update
       const orderNumber = `ORD-${Date.now()}`;
       
       const orderData = {
@@ -72,7 +73,7 @@ export default function Cart() {
       const result = await createOrderWithStockUpdate(orderData, orderItems);
 
       if (!result.success) {
-        alert(`订单创建失败: ${result.error}`);
+        alert(`Order creation failed: ${result.error}`);
         return;
       }
 
@@ -152,9 +153,12 @@ export default function Cart() {
                   <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-cream to-beige/20 rounded-sm overflow-hidden">
                     {item.product.images && item.product.images.length > 0 && item.product.images[0]?.image_url ? (
                       <img
-                        src={item.product.images[0].image_url}
+                        src={getImageUrl(item.product.images[0].image_url) || ''}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23F5F5F5" width="96" height="96"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="32" fill="%23999"%3E📦%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-3xl">

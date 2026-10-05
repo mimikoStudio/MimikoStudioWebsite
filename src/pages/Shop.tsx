@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal, Heart, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { createWhatsAppLink } from '../lib/supabase';
 import { useProducts, useCategories } from '../hooks/useData';
+import { getImageUrl } from '../lib/imageUtils';
 
 const sortOptions = ['✨ Featured', '💰 Price: Low to High', '💰 Price: High to Low', '🆕 Newest'];
 
@@ -130,7 +131,7 @@ export default function Shop() {
                   <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
                     {product.images && product.images.length > 0 && product.images[0]?.image_url ? (
                       <img 
-                        src={product.images[0].image_url} 
+                        src={getImageUrl(product.images[0].image_url) || ''} 
                         alt={product.name} 
                         className="w-full h-full object-cover product-image-hover"
                         loading="lazy"

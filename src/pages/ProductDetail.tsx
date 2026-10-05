@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabase';
 import { createWhatsAppLink } from '../lib/supabase';
 import { getStockStatus } from '../lib/stockValidation';
+import { getImageUrl } from '../lib/imageUtils';
 import type { Product } from '../types';
 
 export default function ProductDetail() {
@@ -87,9 +88,12 @@ export default function ProductDetail() {
             <div className="aspect-square bg-gradient-to-br from-cream to-beige/20 rounded-sm overflow-hidden border border-beige/20">
               {images.length > 0 && images[selectedImage]?.image_url ? (
                 <img
-                  src={images[selectedImage].image_url}
+                  src={getImageUrl(images[selectedImage].image_url) || ''}
                   alt={product.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23F5F5F5" width="400" height="400"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="24" fill="%23999"%3EImage unavailable%3C/text%3E%3C/svg%3E';
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-9xl">
@@ -113,9 +117,12 @@ export default function ProductDetail() {
                   >
                     {img.image_url ? (
                       <img
-                        src={img.image_url}
+                        src={getImageUrl(img.image_url) || ''}
                         alt={`${product.name} view ${idx + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23F5F5F5" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="12" fill="%23999"%3ENo image%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full bg-cream/50 flex items-center justify-center text-2xl">

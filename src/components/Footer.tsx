@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { INSTAGRAM_URL, WHATSAPP_URL } from '../lib/supabase';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export default function Footer() {
+  const { settings } = useSiteSettings();
+
   return (
     <footer className="bg-chocolate text-ivory/80">
       <div className="gold-divider-thick" />
@@ -12,18 +15,36 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center border border-gold/30">
-                <span className="text-xl" role="img" aria-label="Mimiko">🎨</span>
-              </div>
+              {settings.logo_url ? (
+                <img 
+                  src={settings.logo_url} 
+                  alt={settings.site_name}
+                  className="h-12 w-auto object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement('div');
+                      fallback.className = 'w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center border border-gold/30';
+                      fallback.innerHTML = '<span class="text-xl" role="img" aria-label="Mimiko">🎨</span>';
+                      parent.insertBefore(fallback, parent.firstChild);
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center border border-gold/30">
+                  <span className="text-xl" role="img" aria-label="Mimiko">🎨</span>
+                </div>
+              )}
               <div>
-                <h3 className="font-heading text-xl font-semibold text-ivory">Mimiko Studio</h3>
+                <h3 className="font-heading text-xl font-semibold text-ivory">{settings.site_name}</h3>
                 <p className="text-[10px] tracking-[0.2em] uppercase text-gold">Fabric Art</p>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-ivory/50 mb-6">
-              Handcrafted fabric art, thoughtfully painted and uniquely designed for you. Each piece tells a story of creativity and passion.
+              {settings.footer_about_text || 'Handcrafted fabric art, thoughtfully painted and uniquely designed for you. Each piece tells a story of creativity and passion.'}
             </p>
-            <p className="text-gold font-heading text-sm italic">Paint ♥ Create ♥ Be You</p>
+            <p className="text-gold font-heading text-sm italic">{settings.site_tagline || 'Paint ♥ Create ♥ Be You'}</p>
           </div>
 
           {/* Quick Links */}
