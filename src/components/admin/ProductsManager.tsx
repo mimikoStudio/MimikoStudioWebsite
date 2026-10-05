@@ -10,6 +10,7 @@ export default function ProductsManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [publishingAll, setPublishingAll] = useState(false);
+  const [viewingImages, setViewingImages] = useState<any>(null); // For image gallery modal
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -447,25 +448,49 @@ export default function ProductsManager() {
                 <tr key={product.id} className="hover:bg-cream/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {product.images && product.images.length > 0 && product.images[0].image_url ? (
-                        <img
-                          src={product.images[0].image_url}
-                          alt={product.name}
-                          className="w-12 h-12 object-cover rounded-sm border border-beige/20"
-                          onError={(e) => {
-                            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"%3E%3Crect fill="%23E9DCCB" width="48" height="48"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="24"%3E📦%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-cream/50 rounded-sm flex items-center justify-center border border-beige/20">
-                          <span className="text-2xl">📦</span>
-                        </div>
-                      )}
+                      <div 
+                        className="relative cursor-pointer group"
+                        onClick={() => product.images && product.images.length > 0 && setViewingImages(product)}
+                      >
+                        {product.images && product.images.length > 0 && product.images[0].image_url ? (
+                          <img
+                            src={product.images[0].image_url}
+                            alt={product.name}
+                            className="w-16 h-16 object-cover rounded-sm border-2 border-beige/20 group-hover:border-gold transition-all"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Crect fill="%23E9DCCB" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="32"%3E📦%3C/text%3E%3C/svg%3E';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-cream/50 rounded-sm flex items-center justify-center border-2 border-beige/20">
+                            <span className="text-3xl">📦</span>
+                          </div>
+                        )}
+                        {product.images && product.images.length > 1 && (
+                          <div className="absolute -bottom-1 -right-1 bg-gold text-white text-xs px-1.5 py-0.5 rounded-sm font-medium">
+                            +{product.images.length - 1}
+                          </div>
+                        )}
+                        {product.images && product.images.length > 0 && (
+                          <div className="absolute inset-0 bg-chocolate/0 group-hover:bg-chocolate/20 transition-all rounded-sm flex items-center justify-center">
+                            <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs font-medium">
+                              View All
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <p className="font-medium text-chocolate">{product.name}</p>
                         <p className="text-xs text-coffee/50">{product.slug}</p>
-                        {product.images && product.images.length > 0 && (
-                          <p className="text-xs text-gold">{product.images.length} image{product.images.length > 1 ? 's' : ''}</p>
+                        {product.images && product.images.length > 0 ? (
+                          <button
+                            onClick={() => setViewingImages(product)}
+                            className="text-xs text-gold hover:text-chocolate transition-colors mt-1"
+                          >
+                            📸 {product.images.length} image{product.images.length > 1 ? 's' : ''} - View Gallery
+                          </button>
+                        ) : (
+                          <p className="text-xs text-coffee/40 mt-1">No images</p>
                         )}
                       </div>
                     </div>
@@ -514,6 +539,15 @@ export default function ProductsManager() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {product.images && product.images.length > 0 && (
+                        <button
+                          onClick={() => setViewingImages(product)}
+                          className="p-2 hover:bg-sky/10 rounded-sm transition-colors"
+                          title={`View ${product.images.length} image(s)`}
+                        >
+                          <ImageIcon size={16} className="text-sky" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEdit(product)}
                         className="p-2 hover:bg-gold/10 rounded-sm transition-colors"
@@ -821,6 +855,153 @@ export default function ProductsManager() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image Gallery Modal */}
+      {viewingImages && (
+        <div className="fixed inset-0 bg-chocolate/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-pearl rounded-sm max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-beige/20 flex items-center justify-between sticky top-0 bg-pearl z-10">
+              <div>
+                <h3 className="text-xl font-heading text-chocolate">
+                  📸 Product Images
+                </h3>
+                <p className="text-sm text-coffee/60 mt-1">{viewingImages.name}</p>
+              </div>
+              <button
+                onClick={() => setViewingImages(null)}
+                className="text-coffee/60 hover:text-chocolate text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              {viewingImages.images && viewingImages.images.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Image Count */}
+                  <div className="bg-gold/10 border border-gold/20 rounded-sm p-4">
+                    <p className="text-sm text-chocolate">
+                      <strong>{viewingImages.images.length}</strong> image{viewingImages.images.length > 1 ? 's' : ''} uploaded for this product
+                    </p>
+                  </div>
+
+                  {/* Image Gallery Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {viewingImages.images.map((img: any, idx: number) => (
+                      <div key={idx} className="bg-ivory border border-beige/20 rounded-sm overflow-hidden">
+                        <div className="aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center">
+                          {img.image_url ? (
+                            <img
+                              src={img.image_url}
+                              alt={`${viewingImages.name} - Image ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"%3E%3Crect fill="%23E9DCCB" width="400" height="400"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="48" fill="%234B2818"%3E📦%3C/text%3E%3Ctext x="50%25" y="60%25" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="%236B3E28"%3EImage failed to load%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ) : (
+                            <div className="text-center">
+                              <span className="text-6xl block mb-2">📦</span>
+                              <p className="text-sm text-coffee/40">No image data</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-4 bg-white">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-chocolate">
+                                Image {idx + 1}
+                                {idx === 0 && (
+                                  <span className="ml-2 px-2 py-0.5 bg-gold/20 text-gold text-xs rounded-sm">
+                                    Main Image
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-coffee/50 mt-1">
+                                {img.alt_text || `Product image ${idx + 1}`}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-coffee/50">
+                                Order: {img.display_order}
+                              </p>
+                              {img.image_url && (
+                                <p className="text-xs text-coffee/40 mt-1">
+                                  Size: {(img.image_url.length / 1024).toFixed(1)} KB
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Image Info */}
+                  <div className="bg-cream/50 border border-beige/20 rounded-sm p-4">
+                    <h4 className="text-sm font-medium text-chocolate mb-2">📊 Image Details</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <p className="text-coffee/50">Total Images</p>
+                        <p className="text-chocolate font-medium">{viewingImages.images.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-coffee/50">Total Size</p>
+                        <p className="text-chocolate font-medium">
+                          {(viewingImages.images.reduce((sum: number, img: any) => sum + (img.image_url?.length || 0), 0) / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-coffee/50">Format</p>
+                        <p className="text-chocolate font-medium">Base64</p>
+                      </div>
+                      <div>
+                        <p className="text-coffee/50">Storage</p>
+                        <p className="text-chocolate font-medium">Database</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-4 border-t border-beige/20">
+                    <button
+                      onClick={() => {
+                        setViewingImages(null);
+                        handleEdit(viewingImages);
+                      }}
+                      className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    >
+                      <Edit size={16} /> Edit Product & Images
+                    </button>
+                    <button
+                      onClick={() => setViewingImages(null)}
+                      className="btn-outline flex-1"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <span className="text-6xl block mb-4">📦</span>
+                  <p className="text-coffee/40 text-lg mb-2">No images uploaded</p>
+                  <p className="text-coffee/50 text-sm mb-6">
+                    This product doesn't have any images yet.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setViewingImages(null);
+                      handleEdit(viewingImages);
+                    }}
+                    className="btn-primary"
+                  >
+                    Upload Images
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
