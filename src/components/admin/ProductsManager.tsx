@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2, Search, Filter, Upload, X, Image as ImageIcon } fro
 import { useProducts, useCategories } from '../../hooks/useData';
 
 export default function ProductsManager() {
-  const { products, loading, refetch } = useProducts();
+  const { products, loading, refetch } = useProducts({ showAll: true }); // Show all products including drafts
   const { categories } = useCategories();
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -23,7 +23,7 @@ export default function ProductsManager() {
     customization_available: false,
     is_featured: false,
     is_new_arrival: false,
-    is_published: false,
+    is_published: true, // Default to published so products show on website
     images: [] as string[], // Now stores base64 data URLs
   });
 
@@ -255,7 +255,7 @@ export default function ProductsManager() {
       customization_available: false,
       is_featured: false,
       is_new_arrival: false,
-      is_published: false,
+      is_published: true, // Default to published
       images: [],
     });
   };

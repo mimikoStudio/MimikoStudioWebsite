@@ -11,6 +11,7 @@ export function useProducts(filters?: {
   featured?: boolean;
   newArrival?: boolean;
   limit?: number;
+  showAll?: boolean; // Show all products including drafts (for admin)
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +31,12 @@ export function useProducts(filters?: {
       let query = supabase
         .from('products')
         .select('*, product_images(*), categories(*)')
-        .eq('is_published', true)
         .order('created_at', { ascending: false });
+
+      // Only filter by is_published if showAll is false
+      if (!filters?.showAll) {
+        query = query.eq('is_published', true);
+      }
 
       if (filters?.category) query = query.eq('category_id', filters.category);
       if (filters?.featured) query = query.eq('is_featured', true);
@@ -48,7 +53,7 @@ export function useProducts(filters?: {
     } finally {
       setLoading(false);
     }
-  }, [filters?.category, filters?.search, filters?.featured, filters?.newArrival, filters?.limit]);
+  }, [filters?.category, filters?.search, filters?.featured, filters?.newArrival, filters?.limit, filters?.showAll]);
 
   useEffect(() => {
     fetchProducts();
