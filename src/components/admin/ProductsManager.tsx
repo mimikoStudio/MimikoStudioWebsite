@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useProducts, useCategories } from '../../hooks/useData';
-import ImageUpload from './ImageUpload';
-import { ensureStorageBuckets } from '../../lib/storage';
 
 export default function ProductsManager() {
   const { products, loading, refetch } = useProducts();
@@ -11,7 +9,6 @@ export default function ProductsManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [bucketError, setBucketError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -27,27 +24,11 @@ export default function ProductsManager() {
     is_featured: false,
     is_new_arrival: false,
     is_published: false,
-    images: [] as string[],
+    images: [] as string[], // Now stores base64 data URLs
   });
-
-  // Check storage buckets on mount
-  const checkBuckets = async () => {
-    const results = await ensureStorageBuckets();
-    const failed = results.filter(r => !r.success);
-    if (failed.length > 0) {
-      setBucketError(`Storage buckets need setup`);
-    } else {
-      setBucketError(null);
-    }
-  };
-
-  useEffect(() => {
-    checkBuckets();
-  }, []);
 
   useEffect(() => {
     if (editingProduct) {
-      // Load existing product images
       loadProductImages(editingProduct.id);
     }
   }, [editingProduct]);
@@ -77,6 +58,62 @@ export default function ProductsManager() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Convert image to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newImages: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Only image files are allowed');
+        continue;
+      }
+
+      // Validate file size (max 2MB for base64)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image size must be less than 2MB');
+        continue;
+      }
+
+      try {
+        const base64 = await fileToBase64(file);
+        newImages.push(base64);
+      } catch (error) {
+        console.error('Error converting image:', error);
+      }
+    }
+
+    // Add new images to existing ones
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...newImages].slice(0, 5) // Max 5 images
+    }));
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -101,20 +138,18 @@ export default function ProductsManager() {
       let productId: string;
 
       if (editingProduct) {
-        // Update product
         const { error } = await supabase
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
         if (error) {
           if (error.message.includes('row-level security')) {
-            throw new Error('RLS policy is blocking this operation. Please run the SQL fix in Supabase SQL Editor. See FINAL_FIX_RLS_AND_BUCKETS.md for instructions.');
+            throw new Error('RLS policy is blocking this operation. Please disable RLS in Supabase.');
           }
           throw error;
         }
         productId = editingProduct.id;
       } else {
-        // Insert product
         const { data, error } = await supabase
           .from('products')
           .insert([productData])
@@ -122,20 +157,21 @@ export default function ProductsManager() {
           .single();
         if (error) {
           if (error.message.includes('row-level security')) {
-            throw new Error('RLS policy is blocking this operation. Please run the SQL fix in Supabase SQL Editor. See FINAL_FIX_RLS_AND_BUCKETS.md for instructions.');
+            throw new Error('RLS policy is blocking this operation. Please disable RLS in Supabase.');
           }
           throw error;
         }
         productId = data.id;
       }
 
-      // Update product images
+      // Save images (base64) to database
       await updateProductImages(productId, formData.images);
 
       setShowForm(false);
       setEditingProduct(null);
       resetForm();
       refetch();
+      alert('✅ Product saved successfully!');
     } catch (error: any) {
       alert('Error: ' + error.message);
     }
@@ -149,11 +185,11 @@ export default function ProductsManager() {
         .delete()
         .eq('product_id', productId);
 
-      // Insert new images
+      // Insert new images (base64 data URLs)
       if (imageUrls.length > 0) {
         const imageRecords = imageUrls.map((url, index) => ({
           product_id: productId,
-          image_url: url,
+          image_url: url, // base64 data URL
           alt_text: `Product image ${index + 1}`,
           display_order: index,
         }));
@@ -186,7 +222,7 @@ export default function ProductsManager() {
       is_featured: product.is_featured || false,
       is_new_arrival: product.is_new_arrival || false,
       is_published: product.is_published || false,
-      images: [], // Will be loaded in useEffect
+      images: [],
     });
     setShowForm(true);
   };
@@ -195,10 +231,7 @@ export default function ProductsManager() {
     if (!confirm('Are you sure you want to delete this product?')) return;
     
     try {
-      // Delete product images first
       await supabase.from('product_images').delete().eq('product_id', id);
-      
-      // Delete product
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
       refetch();
@@ -242,66 +275,6 @@ export default function ProductsManager() {
           <Plus size={16} /> Add Product
         </button>
       </div>
-
-      {/* Bucket Error Warning */}
-      {bucketError && (
-        <div className="bg-red-50 border-2 border-red-300 rounded-sm p-6 mb-6">
-          <p className="text-red-800 font-bold text-lg mb-3">⚠️ Storage Buckets Not Created</p>
-          <p className="text-red-700 text-sm mb-4">
-            You need to run this SQL <strong>once</strong> in Supabase to enable image uploads:
-          </p>
-          <div className="bg-white border border-red-200 rounded-sm p-4 mb-4">
-            <p className="text-xs text-red-600 font-bold mb-2">👇 Copy this SQL:</p>
-            <pre className="text-xs text-chocolate bg-cream/50 p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">INSERT INTO storage.buckets (id, name, public)
-VALUES 
-  ('product-images', 'product-images', true),
-  ('gallery-images', 'gallery-images', true),
-  ('inquiry-references', 'inquiry-references', false),
-  ('customer-uploads', 'customer-uploads', false)
-ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "public_storage_access" ON storage.objects;
-CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WITH CHECK (true);</pre>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <a 
-              href="https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="btn-primary"
-            >
-              🔗 Open Supabase SQL Editor
-            </a>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`INSERT INTO storage.buckets (id, name, public)
-VALUES 
-  ('product-images', 'product-images', true),
-  ('gallery-images', 'gallery-images', true),
-  ('inquiry-references', 'inquiry-references', false),
-  ('customer-uploads', 'customer-uploads', false)
-ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "public_storage_access" ON storage.objects;
-CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WITH CHECK (true);`);
-                alert('✅ SQL copied! Now paste it in Supabase SQL Editor and click Run.');
-              }}
-              className="btn-secondary"
-            >
-              📋 Copy SQL
-            </button>
-            <button
-              onClick={checkBuckets}
-              className="btn-outline"
-            >
-              🔄 Check Again
-            </button>
-          </div>
-          <p className="text-xs text-red-600 mt-4">
-            After running the SQL in Supabase, click "Check Again" or refresh this page.
-          </p>
-        </div>
-      )}
 
       {/* Search and Filter */}
       <div className="bg-pearl border border-beige/20 rounded-sm p-4 mb-6">
@@ -563,15 +536,69 @@ CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WI
                 </div>
               </div>
 
-              {/* Images */}
+              {/* Images - Now using base64 */}
               <div>
-                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Product Images</h4>
-                <ImageUpload
-                  value={formData.images}
-                  onChange={(urls) => setFormData({ ...formData, images: urls })}
-                  bucket="product-images"
-                  maxFiles={5}
-                />
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">Product Images (Max 2MB each)</h4>
+                
+                {/* Image Preview Grid */}
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {formData.images.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Product image ${index + 1}`}
+                          className="w-full h-40 object-cover rounded-sm border border-beige/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 w-8 h-8 bg-chocolate/80 hover:bg-chocolate text-ivory rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={16} />
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-2 left-2 px-2 py-1 bg-gold text-chocolate text-xs rounded-sm">
+                            Main Image
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Button */}
+                {formData.images.length < 5 && (
+                  <div>
+                    <label className="block">
+                      <div className="border-2 border-dashed border-beige hover:border-gold rounded-sm p-8 text-center cursor-pointer transition-colors">
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload size={32} className="text-gold" />
+                          <p className="text-sm text-coffee/70">
+                            Click to upload images
+                          </p>
+                          <p className="text-xs text-coffee/50">
+                            PNG, JPG, WEBP up to 2MB each
+                          </p>
+                          <p className="text-xs text-coffee/50">
+                            {formData.images.length} of 5 images uploaded
+                          </p>
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+
+                <p className="text-xs text-coffee/50 mt-2">
+                  💡 Images are stored directly in the database (no storage buckets needed)
+                </p>
               </div>
 
               {/* Options */}
