@@ -30,16 +30,19 @@ export default function ProductsManager() {
     images: [] as string[],
   });
 
-  // Auto-create storage buckets on mount
-  useEffect(() => {
-    async function setupBuckets() {
-      const results = await ensureStorageBuckets();
-      const failed = results.filter(r => !r.success);
-      if (failed.length > 0) {
-        setBucketError(`⚠️ Storage buckets need setup. Please run the SQL fix in Supabase.`);
-      }
+  // Check storage buckets on mount
+  const checkBuckets = async () => {
+    const results = await ensureStorageBuckets();
+    const failed = results.filter(r => !r.success);
+    if (failed.length > 0) {
+      setBucketError(`Storage buckets need setup`);
+    } else {
+      setBucketError(null);
     }
-    setupBuckets();
+  };
+
+  useEffect(() => {
+    checkBuckets();
   }, []);
 
   useEffect(() => {
@@ -260,7 +263,7 @@ ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "public_storage_access" ON storage.objects;
 CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WITH CHECK (true);</pre>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <a 
               href="https://supabase.com/dashboard/project/zshfxzdtosfvtngctftn/sql" 
               target="_blank" 
@@ -287,9 +290,15 @@ CREATE POLICY "public_storage_access" ON storage.objects FOR ALL USING (true) WI
             >
               📋 Copy SQL
             </button>
+            <button
+              onClick={checkBuckets}
+              className="btn-outline"
+            >
+              🔄 Check Again
+            </button>
           </div>
           <p className="text-xs text-red-600 mt-4">
-            After running the SQL, refresh this page and the warning will disappear.
+            After running the SQL in Supabase, click "Check Again" or refresh this page.
           </p>
         </div>
       )}
