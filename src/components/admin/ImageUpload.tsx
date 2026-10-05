@@ -59,7 +59,6 @@ export default function ImageUpload({
         const base64 = await fileToBase64(file);
         newImages.push(base64);
       } catch (err) {
-        console.error('Error converting image:', err);
         setError('Failed to process image');
       }
     }

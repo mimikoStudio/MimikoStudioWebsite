@@ -22,29 +22,12 @@ export function useProducts(filters?: {
     setError(null);
     
     if (!isSupabaseConfigured) {
-      console.warn('⚠️ Supabase not configured');
       setProducts([]);
       setLoading(false);
       return;
     }
 
     try {
-      console.log('🔍 Fetching products...', { showAll: filters?.showAll });
-      
-      // First, try a simple query to test connection
-      const { data: testData, error: testError } = await supabase
-        .from('products')
-        .select('id')
-        .limit(1);
-      
-      if (testError) {
-        console.error('❌ Database connection test failed:', testError);
-        // If RLS error, try without filters
-        if (testError.message.includes('row-level security')) {
-          console.warn('⚠️ RLS error detected. Trying alternative query...');
-        }
-      }
-      
       let query = supabase
         .from('products')
         .select('*, product_images(*), categories(*)')
@@ -64,17 +47,8 @@ export function useProducts(filters?: {
       const { data, error: fetchError } = await query;
       
       if (fetchError) {
-        console.error('❌ Error fetching products:', fetchError);
-        console.error('Error details:', {
-          message: fetchError.message,
-          details: fetchError.details,
-          hint: fetchError.hint,
-          code: fetchError.code
-        });
-        
         // If RLS error, return empty array but don't throw
         if (fetchError.message.includes('row-level security')) {
-          console.warn('⚠️ RLS policy blocking access. Please run the RLS fix SQL.');
           setProducts([]);
           setError('Database access blocked by security policy. Please contact admin.');
           setLoading(false);
@@ -84,10 +58,8 @@ export function useProducts(filters?: {
         throw fetchError;
       }
       
-      console.log(`✅ Found ${data?.length || 0} products`, data);
       setProducts(data || []);
     } catch (err: any) {
-      console.error('❌ Error in fetchProducts:', err);
       setError(err.message || 'Failed to fetch products');
       setProducts([]);
     } finally {
@@ -138,7 +110,7 @@ export function useCategories() {
       
       if (!error && data) setCategories(data);
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      // Error handled silently
     } finally {
       setLoading(false);
     }
@@ -174,7 +146,7 @@ export function useInquiries(status?: string) {
       const { data, error } = await query;
       if (!error && data) setInquiries(data);
     } catch (err) {
-      console.error('Error fetching inquiries:', err);
+      // Error handled silently
     } finally {
       setLoading(false);
     }
@@ -226,7 +198,7 @@ export function useAppointments(status?: string) {
       const { data, error } = await query;
       if (!error && data) setAppointments(data);
     } catch (err) {
-      console.error('Error fetching appointments:', err);
+      // Error handled silently
     } finally {
       setLoading(false);
     }
@@ -300,7 +272,7 @@ export function useDashboardStats() {
         totalOrders: orders.length,
       });
     } catch (err) {
-      console.error('Error fetching stats:', err);
+      // Error handled silently
     } finally {
       setLoading(false);
     }

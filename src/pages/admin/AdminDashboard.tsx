@@ -12,8 +12,6 @@ import AppointmentsManager from '../../components/admin/AppointmentsManager';
 import CategoriesManager from '../../components/admin/CategoriesManager';
 import SiteSettingsManager from '../../components/admin/SiteSettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
-import DebugPanel from '../../components/admin/DebugPanel';
-import ImageUploadDiagnostics from '../../components/admin/ImageUploadDiagnostics';
 
 type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'settings';
 
@@ -222,12 +220,7 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8">
         {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'products' && (
-          <div>
-            <ImageUploadDiagnostics />
-            <ProductsManager />
-          </div>
-        )}
+        {activeTab === 'products' && <ProductsManager />}
         {activeTab === 'categories' && <CategoriesManager />}
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
@@ -384,9 +377,6 @@ function OverviewTab() {
   return (
     <div>
       <h2 className="text-2xl font-heading text-chocolate mb-6">📊 Dashboard Overview</h2>
-
-      {/* Debug Panel - Shows database status and helps troubleshoot */}
-      <DebugPanel />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

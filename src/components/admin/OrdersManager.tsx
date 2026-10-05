@@ -28,7 +28,7 @@ export default function OrdersManager() {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      // Error fetching orders handled silently
     } finally {
       setLoading(false);
     }

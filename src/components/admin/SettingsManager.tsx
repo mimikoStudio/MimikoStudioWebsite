@@ -37,7 +37,7 @@ export default function SettingsManager() {
         setSettings({ ...settings, ...settingsMap });
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      // Error fetching settings handled silently
     } finally {
       setLoading(false);
     }
