@@ -3,6 +3,40 @@ import { supabase } from './supabase';
 const BUCKET_NAME = 'website-content';
 
 /**
+ * Ensure storage bucket exists
+ */
+export async function ensureBucketExists(): Promise<boolean> {
+  try {
+    // Try to list buckets to check if our bucket exists
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return false;
+    }
+
+    const bucketExists = buckets?.some((b: any) => b.name === BUCKET_NAME);
+    
+    if (!bucketExists) {
+      // Create the bucket
+      const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
+        public: true,
+      });
+      
+      if (createError && !createError.message.includes('already exists')) {
+        console.error('Error creating bucket:', createError);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error ensuring bucket exists:', error);
+    return false;
+  }
+}
+
+/**
  * Upload image to Supabase Storage
  */
 export async function uploadImage(
@@ -11,6 +45,15 @@ export async function uploadImage(
   fileName?: string
 ): Promise<{ success: boolean; url?: string; path?: string; error?: string }> {
   try {
+    // Ensure bucket exists
+    const bucketExists = await ensureBucketExists();
+    if (!bucketExists) {
+      return { 
+        success: false, 
+        error: 'Storage bucket could not be created. Please run the database migration first.' 
+      };
+    }
+
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {

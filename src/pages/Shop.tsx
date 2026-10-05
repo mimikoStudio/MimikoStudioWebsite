@@ -127,8 +127,8 @@ export default function Shop() {
           {!loading && sortedProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {sortedProducts.map((product, idx) => (
-                <Link key={product.id} to={`/product/${product.slug}`} className="card-luxury group block">
-                  <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center overflow-hidden">
+                <Link key={product.id} to={`/product/${product.slug}`} className="curved-card bg-pearl group block shadow-curved hover:shadow-curved-lg transition-all duration-300 hover:-translate-y-1">
+                  <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center curved-image">
                     {product.images && product.images.length > 0 && product.images[0]?.image_url ? (
                       <img 
                         src={getImageUrl(product.images[0].image_url) || ''} 
@@ -157,15 +157,15 @@ export default function Shop() {
                     )}
                     <div className="absolute inset-0 bg-chocolate/0 group-hover:bg-chocolate/10 transition-all duration-300 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
                       <button
-                        onClick={() => toggleWishlist(product.id)}
-                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-luxury hover:bg-gold hover:text-white transition-all"
+                        onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }}
+                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-curved hover:bg-gold hover:text-white transition-all"
                         aria-label="Add to wishlist"
                       >
                         <Heart size={16} className={isInWishlist(product.id) ? 'fill-blush text-blush' : ''} />
                       </button>
                       <button
-                        onClick={() => addItem(product, 1)}
-                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-luxury hover:bg-gold hover:text-white transition-all"
+                        onClick={(e) => { e.preventDefault(); addItem(product, 1); }}
+                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-curved hover:bg-gold hover:text-white transition-all"
                         aria-label="Add to cart"
                       >
                         <ShoppingBag size={16} />
@@ -198,7 +198,7 @@ export default function Shop() {
                       href={createWhatsAppLink(`Hi! I'm interested in: ${product.name} (₹${product.sale_price || product.price})`)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-4 w-full block text-center text-xs font-label tracking-wider uppercase text-gold border border-gold/30 py-2 rounded-sm hover:bg-gold hover:text-white transition-all"
+                      className="mt-4 w-full block text-center text-xs font-label tracking-wider uppercase text-gold border border-gold/30 py-2 curved-button hover:bg-gold hover:text-white transition-all"
                       onClick={(e) => e.stopPropagation()}
                     >
                       💬 Inquire on WhatsApp

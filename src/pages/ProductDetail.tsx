@@ -85,7 +85,7 @@ export default function ProductDetail() {
           {/* Image Gallery */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="aspect-square bg-gradient-to-br from-cream to-beige/20 rounded-sm overflow-hidden border border-beige/20">
+            <div className="aspect-square bg-gradient-to-br from-cream to-beige/20 curved-image-lg overflow-hidden border border-beige/20 shadow-curved">
               {images.length > 0 && images[selectedImage]?.image_url ? (
                 <img
                   src={getImageUrl(images[selectedImage].image_url) || ''}
@@ -109,9 +109,9 @@ export default function ProductDetail() {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`aspect-square rounded-sm overflow-hidden border-2 transition-all ${
+                    className={`aspect-square curved-image-sm overflow-hidden border-2 transition-all ${
                       selectedImage === idx
-                        ? 'border-gold shadow-luxury'
+                        ? 'border-gold shadow-curved'
                         : 'border-beige/30 hover:border-gold/50'
                     }`}
                   >
@@ -270,14 +270,14 @@ export default function ProductDetail() {
                   }
                 }}
                 disabled={product.stock_quantity === 0}
-                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary curved-button flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBag size={18} />
                 {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={() => toggleWishlist(product.id)}
-                className={`w-14 h-14 border rounded-sm flex items-center justify-center transition-all ${
+                className={`w-14 h-14 border rounded-full flex items-center justify-center transition-all ${
                   isInWishlist(product.id)
                     ? 'border-blush bg-blush/10 text-blush'
                     : 'border-beige text-coffee/60 hover:border-gold hover:text-gold'
@@ -294,7 +294,7 @@ export default function ProductDetail() {
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary w-full flex items-center justify-center gap-2"
+              className="btn-secondary curved-button w-full flex items-center justify-center gap-2"
             >
               <MessageCircle size={18} />
               Inquire on WhatsApp
