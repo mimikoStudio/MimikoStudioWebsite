@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, MessageSquare, Calendar, ShoppingCart,
-  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink
+  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink, TrendingUp
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useDashboardStats, useInquiries, useAppointments, useProducts } from '../../hooks/useData';
@@ -12,8 +12,9 @@ import AppointmentsManager from '../../components/admin/AppointmentsManager';
 import CategoriesManager from '../../components/admin/CategoriesManager';
 import SiteSettingsManager from '../../components/admin/SiteSettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
+import ReportsDashboard from '../../components/admin/ReportsDashboard';
 
-type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'settings';
+type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'settings';
 
 const COMPLETE_SETUP_SQL = `-- ============================================
 -- MIMIKO STUDIO - COMPLETE DATABASE SETUP
@@ -171,6 +172,7 @@ export default function AdminDashboard() {
     { id: 'inquiries' as Tab, label: '💌 Inquiries', icon: <MessageSquare size={16} /> },
     { id: 'appointments' as Tab, label: '📅 Appointments', icon: <Calendar size={16} /> },
     { id: 'orders' as Tab, label: '📦 Orders', icon: <ShoppingCart size={16} /> },
+    { id: 'reports' as Tab, label: '📈 Reports', icon: <TrendingUp size={16} /> },
     { id: 'settings' as Tab, label: '⚙️ Settings', icon: <Settings size={16} /> },
   ];
 
@@ -225,6 +227,7 @@ export default function AdminDashboard() {
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
         {activeTab === 'orders' && <OrdersManager />}
+        {activeTab === 'reports' && <ReportsDashboard />}
         {activeTab === 'settings' && <SiteSettingsManager />}
       </main>
     </div>
