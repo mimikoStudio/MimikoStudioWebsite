@@ -4,11 +4,12 @@ import { Plus, Edit, Trash2, Search, Filter, Upload, X, Image as ImageIcon } fro
 import { useProducts, useCategories } from '../../hooks/useData';
 
 export default function ProductsManager() {
-  const { products, loading, refetch } = useProducts({ showAll: true }); // Show all products including drafts
+  const { products, loading, error: fetchError, refetch } = useProducts({ showAll: true }); // Show all products including drafts
   const { categories } = useCategories();
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [publishingAll, setPublishingAll] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -260,20 +261,81 @@ export default function ProductsManager() {
     });
   };
 
+  const publishAllProducts = async () => {
+    if (!confirm('Publish all products? This will make all draft products visible on the website.')) return;
+    
+    setPublishingAll(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_published: true })
+        .eq('is_published', false);
+      
+      if (error) throw error;
+      
+      alert('✅ All products published successfully!');
+      refetch();
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    } finally {
+      setPublishingAll(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-12"><div className="spinner-luxury" /></div>;
   }
+
+  // Debug info
+  const draftCount = products.filter(p => !p.is_published).length;
+  const publishedCount = products.filter(p => p.is_published).length;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-heading text-chocolate">🛍️ Products Management</h2>
-        <button
-          onClick={() => { setShowForm(true); setEditingProduct(null); resetForm(); }}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus size={16} /> Add Product
-        </button>
+        <div className="flex gap-3">
+          {draftCount > 0 && (
+            <button
+              onClick={publishAllProducts}
+              disabled={publishingAll}
+              className="btn-secondary flex items-center gap-2"
+            >
+              {publishingAll ? 'Publishing...' : `🚀 Publish All (${draftCount})`}
+            </button>
+          )}
+          <button
+            onClick={() => { setShowForm(true); setEditingProduct(null); resetForm(); }}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus size={16} /> Add Product
+          </button>
+        </div>
+      </div>
+
+      {/* Status Info */}
+      <div className="bg-pearl border border-beige/20 rounded-sm p-4 mb-6">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex gap-6">
+            <span className="text-coffee/60">
+              Total: <strong className="text-chocolate">{products.length}</strong>
+            </span>
+            <span className="text-coffee/60">
+              Published: <strong className="text-sage">{publishedCount}</strong>
+            </span>
+            <span className="text-coffee/60">
+              Drafts: <strong className="text-gold">{draftCount}</strong>
+            </span>
+          </div>
+          {fetchError && (
+            <span className="text-blush text-xs">⚠️ Error: {fetchError}</span>
+          )}
+        </div>
+        {draftCount > 0 && (
+          <p className="text-xs text-gold mt-2">
+            💡 Draft products are hidden from the website. Click "Publish All" or click individual status badges to publish them.
+          </p>
+        )}
       </div>
 
       {/* Search and Filter */}

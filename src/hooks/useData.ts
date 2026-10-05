@@ -22,12 +22,15 @@ export function useProducts(filters?: {
     setError(null);
     
     if (!isSupabaseConfigured) {
+      console.warn('⚠️ Supabase not configured');
       setProducts([]);
       setLoading(false);
       return;
     }
 
     try {
+      console.log('🔍 Fetching products...', { showAll: filters?.showAll });
+      
       let query = supabase
         .from('products')
         .select('*, product_images(*), categories(*)')
@@ -45,9 +48,16 @@ export function useProducts(filters?: {
       if (filters?.limit) query = query.limit(filters.limit);
 
       const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
+      
+      if (fetchError) {
+        console.error('❌ Error fetching products:', fetchError);
+        throw fetchError;
+      }
+      
+      console.log(`✅ Found ${data?.length || 0} products`);
       setProducts(data || []);
     } catch (err: any) {
+      console.error('❌ Error in fetchProducts:', err);
       setError(err.message);
       setProducts([]);
     } finally {
