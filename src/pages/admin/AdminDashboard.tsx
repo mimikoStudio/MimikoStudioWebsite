@@ -13,6 +13,7 @@ import CategoriesManager from '../../components/admin/CategoriesManager';
 import SettingsManager from '../../components/admin/SettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
 import DebugPanel from '../../components/admin/DebugPanel';
+import ImageUploadDiagnostics from '../../components/admin/ImageUploadDiagnostics';
 
 type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'settings';
 
@@ -221,7 +222,12 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8">
         {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'products' && <ProductsManager />}
+        {activeTab === 'products' && (
+          <div>
+            <ImageUploadDiagnostics />
+            <ProductsManager />
+          </div>
+        )}
         {activeTab === 'categories' && <CategoriesManager />}
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
