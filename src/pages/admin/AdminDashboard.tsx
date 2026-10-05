@@ -16,6 +16,7 @@ import ReportsDashboard from '../../components/admin/ReportsDashboard';
 import HeroBannerManager from '../../components/admin/HeroBannerManager';
 import GalleryManager from '../../components/admin/GalleryManager';
 import CollectionsManager from '../../components/admin/CollectionsManager';
+import AutoSetup from '../../components/admin/AutoSetup';
 
 type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'settings';
 
@@ -227,6 +228,7 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8">
+        <AutoSetup />
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'products' && <ProductsManager />}
         {activeTab === 'categories' && <CategoriesManager />}
