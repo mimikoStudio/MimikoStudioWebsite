@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { getActiveHeroBanners, HeroBanner } from '../lib/contentService';
 
 export default function HeroCarousel() {
@@ -70,8 +70,87 @@ export default function HeroCarousel() {
     );
   }
 
+  // Fallback hero section when no banners are available
   if (banners.length === 0) {
-    return null;
+    return (
+      <section className="relative min-h-screen flex items-center pt-20" style={{ backgroundColor: '#4B2818' }}>
+        <div className="absolute inset-0" style={{
+          background: 'linear-gradient(135deg, #4B2818 0%, #6B3E28 50%, #4B2818 100%)'
+        }}>
+          <div className="absolute inset-0 opacity-30" style={{
+            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(213,170,100,0.3) 0%, transparent 50%),
+                             radial-gradient(circle at 80% 20%, rgba(242,160,180,0.15) 0%, transparent 40%),
+                             radial-gradient(circle at 60% 80%, rgba(213,170,100,0.2) 0%, transparent 40%)`
+          }} />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 w-full">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="h-px w-12" style={{ backgroundColor: '#D5AA64' }} />
+              <span style={{ color: '#D5AA64', fontSize: '0.75rem', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
+                Handcrafted Fabric Art
+              </span>
+            </div>
+            
+            <h1 style={{ 
+              fontFamily: 'Cormorant Garamond, serif', 
+              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', 
+              fontWeight: 300, 
+              color: '#FFF5E9', 
+              lineHeight: 1.2, 
+              marginBottom: '1rem' 
+            }}>
+              Where Art Meets
+            </h1>
+            <h1 style={{ 
+              fontFamily: 'Cormorant Garamond, serif', 
+              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', 
+              fontWeight: 300, 
+              fontStyle: 'italic', 
+              color: '#D5AA64', 
+              lineHeight: 1.2, 
+              marginBottom: '1.5rem' 
+            }}>
+              Elegance.
+            </h1>
+            
+            <p style={{ 
+              color: 'rgba(255,245,233,0.7)', 
+              fontSize: 'clamp(1rem, 2vw, 1.25rem)', 
+              fontWeight: 300, 
+              lineHeight: 1.6, 
+              maxWidth: '36rem', 
+              marginBottom: '1rem' 
+            }}>
+              Hand-Painted Creations, Made With Love.
+            </p>
+            <p style={{ 
+              color: 'rgba(255,245,233,0.5)', 
+              fontSize: '1rem', 
+              lineHeight: 1.6, 
+              maxWidth: '32rem', 
+              marginBottom: '3rem' 
+            }}>
+              Explore the beauty of personalized fabric art, thoughtfully designed to express your unique style.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link to="/collections" className="btn-primary group">
+                ✨ Explore Our Collection
+                <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link to="/custom-creations" className="btn-secondary" style={{ 
+                borderColor: 'rgba(255,245,233,0.4)', 
+                color: '#FFF5E9' 
+              }}>
+                🎨 Create Your Own Design
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const currentBanner = banners[currentIndex];
