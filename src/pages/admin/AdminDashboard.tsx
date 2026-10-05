@@ -124,35 +124,22 @@ export default function AdminDashboard() {
 
   const checkDatabaseStatus = async () => {
     try {
-      // Try to query categories - if this fails, DB needs setup
+      // Just check if we can read from categories table
       const { error } = await supabase
         .from('categories')
         .select('id')
         .limit(1);
 
       if (error) {
-        // Redirect to setup page
-        navigate('/admin/setup');
-        return;
+        // Database tables don't exist or can't be read
+        setDbReady(false);
       } else {
-        // Try to insert to check permissions
-        const { error: insertError } = await supabase
-          .from('categories')
-          .insert([{ name: '__test__', slug: '__test__', is_active: false }]);
-
-        if (insertError) {
-          // Redirect to setup page
-          navigate('/admin/setup');
-          return;
-        } else {
-          // Clean up test
-          await supabase.from('categories').delete().eq('slug', '__test__');
-          setDbReady(true);
-        }
+        // Database is accessible
+        setDbReady(true);
       }
     } catch {
-      // Redirect to setup page
-      navigate('/admin/setup');
+      // Any error means database needs setup
+      setDbReady(false);
     }
   };
 
