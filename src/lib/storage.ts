@@ -60,7 +60,7 @@ export async function uploadProductImage(file: File, productId?: string): Promis
       return null;
     }
 
-    const {  urlData } = supabase.storage
+    const { data: urlData } = supabase.storage
       .from('product-images')
       .getPublicUrl(data.path);
 
@@ -76,7 +76,7 @@ export async function uploadProductImage(file: File, productId?: string): Promis
 // ============================================
 export async function checkStorageBuckets(): Promise<{ exists: boolean; missing: string[] }> {
   try {
-    const {  buckets, error } = await supabase.storage.listBuckets();
+    const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
       return { exists: false, missing: ['product-images', 'gallery-images', 'inquiry-references', 'customer-uploads'] };

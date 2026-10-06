@@ -131,7 +131,7 @@ export async function getSalesReport(filters: ReportFilters): Promise<SalesRepor
       query = query.eq('payment_status', filters.paymentStatus);
     }
 
-    const {  orders, error } = await query;
+    const { data: orders, error } = await query;
 
     if (error) {
       console.error('Error fetching sales report:', error);
@@ -218,7 +218,7 @@ export async function getOrderReport(filters: ReportFilters): Promise<OrderRepor
       query = query.eq('order_status', filters.orderStatus);
     }
 
-    const {  orders, error } = await query;
+    const { data: orders, error } = await query;
 
     if (error || !orders) {
       return {
@@ -286,7 +286,7 @@ export async function getCategoryReport(filters: ReportFilters): Promise<Categor
       query = query.eq('products.category_id', filters.category);
     }
 
-    const {  orderItems, error } = await query;
+    const { data: orderItems, error } = await query;
 
     if (error || !orderItems) {
       return { categories: [] };
@@ -356,7 +356,7 @@ export async function getProductReport(filters: ReportFilters): Promise<ProductR
       query = query.eq('products.category_id', filters.category);
     }
 
-    const {  orderItems, error } = await query;
+    const { data: orderItems, error } = await query;
 
     if (error || !orderItems) {
       return { products: [] };
@@ -422,7 +422,7 @@ export async function getCustomerReport(filters: ReportFilters): Promise<Custome
       query = query.eq('customer_id', filters.customer);
     }
 
-    const {  orders, error } = await query;
+    const { data: orders, error } = await query;
 
     if (error || !orders) {
       return {
@@ -501,7 +501,7 @@ export async function getCustomerReport(filters: ReportFilters): Promise<Custome
  */
 export async function getInventoryReport(): Promise<InventoryReport> {
   try {
-    const {  products, error } = await supabase
+    const { data: products, error } = await supabase
       .from('products')
       .select('*, categories(*)')
       .eq('is_published', true);
@@ -567,7 +567,7 @@ export async function getDashboardInsights(): Promise<DashboardInsights> {
     const monthStartStr = monthStart.toISOString();
 
     // Today's orders and sales
-    const {  todayOrders } = await supabase
+    const { data: todayOrders } = await supabase
       .from('orders')
       .select('total_amount')
       .gte('created_at', todayStr);
@@ -576,7 +576,7 @@ export async function getDashboardInsights(): Promise<DashboardInsights> {
     const todaySales = todayOrders?.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0) || 0;
 
     // Month sales
-    const {  monthOrders } = await supabase
+    const { data: monthOrders } = await supabase
       .from('orders')
       .select('total_amount')
       .gte('created_at', monthStartStr);
@@ -584,7 +584,7 @@ export async function getDashboardInsights(): Promise<DashboardInsights> {
     const monthSales = monthOrders?.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0) || 0;
 
     // Top product
-    const {  topProducts } = await supabase
+    const { data: topProducts } = await supabase
       .from('order_items')
       .select('product_id, quantity, unit_price, products(name)')
       .order('quantity', { ascending: false })
@@ -596,7 +596,7 @@ export async function getDashboardInsights(): Promise<DashboardInsights> {
     } : null;
 
     // Top category
-    const {  topCategories } = await supabase
+    const { data: topCategories } = await supabase
       .from('order_items')
       .select('quantity, unit_price, products!inner(categories(name))')
       .order('quantity', { ascending: false })
@@ -630,7 +630,7 @@ export async function getDashboardInsights(): Promise<DashboardInsights> {
       .eq('order_status', 'pending');
 
     // New customers this month
-    const {  newCustomers } = await supabase
+    const { data: newCustomers } = await supabase
       .from('orders')
       .select('customer_id')
       .gte('created_at', monthStartStr);
