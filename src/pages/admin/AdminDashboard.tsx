@@ -16,9 +16,10 @@ import ReportsDashboard from '../../components/admin/ReportsDashboard';
 import HeroBannerManager from '../../components/admin/HeroBannerManager';
 import GalleryManager from '../../components/admin/GalleryManager';
 import CollectionsManager from '../../components/admin/CollectionsManager';
+import WhatsAppSettingsManager from '../../components/admin/WhatsAppSettingsManager';
 import AutoSetup from '../../components/admin/AutoSetup';
 
-type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'settings';
+type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'whatsapp' | 'settings';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -68,6 +69,7 @@ export default function AdminDashboard() {
     { id: 'appointments' as Tab, label: '📅 Appointments', icon: <Calendar size={16} /> },
     { id: 'orders' as Tab, label: '📦 Orders', icon: <ShoppingCart size={16} /> },
     { id: 'reports' as Tab, label: '📈 Reports', icon: <TrendingUp size={16} /> },
+    { id: 'whatsapp' as Tab, label: '💬 WhatsApp', icon: <MessageSquare size={16} /> },
     { id: 'settings' as Tab, label: '⚙️ Settings', icon: <Settings size={16} /> },
   ];
 
@@ -127,6 +129,7 @@ export default function AdminDashboard() {
         {activeTab === 'appointments' && <AppointmentsManager />}
         {activeTab === 'orders' && <OrdersManager />}
         {activeTab === 'reports' && <ReportsDashboard />}
+        {activeTab === 'whatsapp' && <WhatsAppSettingsManager />}
         {activeTab === 'settings' && <SiteSettingsManager />}
       </main>
     </div>

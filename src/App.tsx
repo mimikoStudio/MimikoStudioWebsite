@@ -3,7 +3,7 @@ import { CartProvider } from './context/CartContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import WhatsAppButton from './components/WhatsAppButton';
+import FloatingWhatsAppButton from './components/FloatingWhatsAppButton';
 import Home from './pages/Home';
 import Collections from './pages/Collections';
 import Shop from './pages/Shop';
@@ -53,7 +53,7 @@ function App() {
                       </Routes>
                     </main>
                     <Footer />
-                    <WhatsAppButton />
+                    <FloatingWhatsAppButton />
                   </>
                 }
               />
