@@ -22,16 +22,19 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
 
   const loadSettings = async () => {
     try {
+      console.log('🔧 Loading site settings...');
       const { data, error } = await supabase
         .from('site_settings')
         .select('*');
 
       if (error) {
+        console.warn('⚠️ Error loading site settings, using defaults:', error.message);
         setLoading(false);
         return;
       }
 
       if (data && data.length > 0) {
+        console.log(`✅ Loaded ${data.length} settings from database`);
         const settingsMap: any = {};
         data.forEach((item: any) => {
           // Try to parse JSON values
@@ -42,8 +45,11 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
           }
         });
         setSettings({ ...defaultSiteSettings, ...settingsMap });
+      } else {
+        console.log('ℹ️ No settings found in database, using defaults');
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error loading site settings:', error);
       // Error loading site settings handled silently
     } finally {
       setLoading(false);
