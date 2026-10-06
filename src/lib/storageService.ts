@@ -36,7 +36,7 @@ async function tryUploadToBucket(
       return { success: false, error: error.message };
     }
 
-    const {  urlData } = supabase.storage
+    const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 

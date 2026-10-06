@@ -60,7 +60,7 @@ export const defaultInvoiceSettings: InvoiceSettings = {
 export async function generateInvoiceNumber(): Promise<string> {
   try {
     // Get invoice settings
-    const {  settings } = await supabase
+    const { data: settings } = await supabase
       .from('site_settings')
       .select('setting_value')
       .eq('setting_key', 'invoice_settings')
@@ -76,7 +76,7 @@ export async function generateInvoiceNumber(): Promise<string> {
     }
 
     // Get the latest invoice number
-    const {  latestInvoice, error } = await supabase
+    const { data: latestInvoice, error } = await supabase
       .from('invoices')
       .select('invoice_number')
       .order('created_at', { ascending: false })
@@ -115,7 +115,7 @@ export async function generateInvoiceNumber(): Promise<string> {
 export async function createInvoice(orderId: string): Promise<{ success: boolean; invoice?: Invoice; error?: string }> {
   try {
     // Check if invoice already exists for this order
-    const {  existingInvoice, error: checkError } = await supabase
+    const { data: existingInvoice, error: checkError } = await supabase
       .from('invoices')
       .select('*')
       .eq('order_id', orderId)
@@ -129,7 +129,7 @@ export async function createInvoice(orderId: string): Promise<{ success: boolean
     }
 
     // Get order details
-    const {  order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .select('*, order_items(*)')
       .eq('id', orderId)
@@ -146,7 +146,7 @@ export async function createInvoice(orderId: string): Promise<{ success: boolean
     const invoiceNumber = await generateInvoiceNumber();
 
     // Get invoice settings
-    const {  settings } = await supabase
+    const { data: settings } = await supabase
       .from('site_settings')
       .select('setting_value')
       .eq('setting_key', 'invoice_settings')
@@ -171,7 +171,7 @@ export async function createInvoice(orderId: string): Promise<{ success: boolean
     const balanceDue = totalAmount - amountPaid;
 
     // Create invoice
-    const {  invoice, error: invoiceError } = await supabase
+    const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert([{
         order_id: orderId,
@@ -222,7 +222,7 @@ export async function createInvoice(orderId: string): Promise<{ success: boolean
  */
 export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
   try {
-    const {  invoice, error } = await supabase
+    const { data: invoice, error } = await supabase
       .from('invoices')
       .select('*, order:orders(*, order_items(*))')
       .eq('id', invoiceId)
@@ -245,7 +245,7 @@ export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
  */
 export async function getInvoiceByOrderId(orderId: string): Promise<Invoice | null> {
   try {
-    const {  invoice, error } = await supabase
+    const { data: invoice, error } = await supabase
       .from('invoices')
       .select('*, order:orders(*, order_items(*))')
       .eq('order_id', orderId)
@@ -267,7 +267,7 @@ export async function getInvoiceByOrderId(orderId: string): Promise<Invoice | nu
  */
 export async function getAllInvoices(): Promise<Invoice[]> {
   try {
-    const {  invoices, error } = await supabase
+    const { data: invoices, error } = await supabase
       .from('invoices')
       .select('*, order:orders(*, order_items(*))')
       .order('created_at', { ascending: false });
@@ -372,7 +372,7 @@ export async function saveInvoiceSettings(settings: InvoiceSettings): Promise<{ 
  */
 export async function getInvoiceSettings(): Promise<InvoiceSettings> {
   try {
-    const {  settings } = await supabase
+    const { data: settings } = await supabase
       .from('site_settings')
       .select('setting_value')
       .eq('setting_key', 'invoice_settings')
