@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { INSTAGRAM_URL, WHATSAPP_URL } from '../lib/supabase';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export default function Footer() {
@@ -109,22 +108,50 @@ export default function Footer() {
           <div>
             <h4 className="font-heading text-lg font-semibold text-ivory mb-6">📍 Get in Touch</h4>
             <ul className="space-y-4">
-              <li className="flex items-center gap-3">
-                <span className="text-gold">💬</span>
-                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-ivory/50 hover:text-gold transition-colors">
-                  +91 7874291924
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="text-gold">📱</span>
-                <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-ivory/50 hover:text-gold transition-colors">
-                  @mimiko.studio24
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="text-gold">📌</span>
-                <span className="text-sm text-ivory/50">Pinterest — Coming Soon</span>
-              </li>
+              {settings.whatsapp && (
+                <li className="flex items-center gap-3">
+                  <span className="text-gold">💬</span>
+                  <a 
+                    href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, '')}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-sm text-ivory/50 hover:text-gold transition-colors"
+                  >
+                    {settings.whatsapp}
+                  </a>
+                </li>
+              )}
+              {settings.instagram_url && (
+                <li className="flex items-center gap-3">
+                  <span className="text-gold">📱</span>
+                  <a 
+                    href={settings.instagram_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-sm text-ivory/50 hover:text-gold transition-colors"
+                  >
+                    {settings.instagram_handle || 'Instagram'}
+                  </a>
+                </li>
+              )}
+              {settings.pinterest_url && (
+                <li className="flex items-center gap-3">
+                  <span className="text-gold">📌</span>
+                  <a 
+                    href={settings.pinterest_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-sm text-ivory/50 hover:text-gold transition-colors"
+                  >
+                    Pinterest
+                  </a>
+                </li>
+              )}
+              {!settings.whatsapp && !settings.instagram_url && !settings.pinterest_url && (
+                <li className="text-sm text-ivory/50">
+                  Contact information not available
+                </li>
+              )}
             </ul>
 
             {/* Newsletter */}
@@ -149,15 +176,39 @@ export default function Footer() {
       <div className="border-t border-ivory/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-ivory/30">
-            © {new Date().getFullYear()} Mimiko Studio | Fabric Art. All rights reserved.
+            {settings.copyright_text || `© ${new Date().getFullYear()} ${settings.site_name} | Fabric Art. All rights reserved.`}
           </p>
           <div className="flex items-center gap-6">
-            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
-              📱
-            </a>
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
-              💬
-            </a>
+            {settings.instagram_url && (
+              <a href={settings.instagram_url} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
+                📱
+              </a>
+            )}
+            {settings.whatsapp && (
+              <a 
+                href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, '')}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-ivory/30 hover:text-gold transition-colors text-lg"
+              >
+                💬
+              </a>
+            )}
+            {settings.facebook_url && (
+              <a href={settings.facebook_url} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
+                📘
+              </a>
+            )}
+            {settings.youtube_url && (
+              <a href={settings.youtube_url} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
+                📺
+              </a>
+            )}
+            {settings.pinterest_url && (
+              <a href={settings.pinterest_url} target="_blank" rel="noopener noreferrer" className="text-ivory/30 hover:text-gold transition-colors text-lg">
+                📌
+              </a>
+            )}
           </div>
         </div>
       </div>

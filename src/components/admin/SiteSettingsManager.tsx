@@ -656,7 +656,8 @@ function FooterSettings({ settings, onUpdate }: any) {
 // Social Settings Component
 function SocialSettings({ settings, onUpdate }: any) {
   const socialFields = [
-    { key: 'instagram_url', label: 'Instagram', placeholder: 'https://instagram.com/...' },
+    { key: 'instagram_url', label: 'Instagram URL', placeholder: 'https://instagram.com/...' },
+    { key: 'instagram_handle', label: 'Instagram Handle', placeholder: '@yourprofile' },
     { key: 'facebook_url', label: 'Facebook', placeholder: 'https://facebook.com/...' },
     { key: 'youtube_url', label: 'YouTube', placeholder: 'https://youtube.com/...' },
     { key: 'pinterest_url', label: 'Pinterest', placeholder: 'https://pinterest.com/...' },
@@ -676,8 +677,8 @@ function SocialSettings({ settings, onUpdate }: any) {
                 {field.label}
               </label>
               <input
-                type="url"
-                value={settings[field.key]}
+                type={field.key === 'instagram_handle' ? 'text' : 'url'}
+                value={settings[field.key] || ''}
                 onChange={(e) => onUpdate(field.key, e.target.value)}
                 className="input-luxury"
                 placeholder={field.placeholder}
