@@ -26,15 +26,22 @@ export default function SiteSettingsManager() {
     setSaving(true);
     setMessage(null);
     try {
-      await updateSettings(localSettings);
-      setMessage({ type: 'success', text: '✅ Settings saved successfully!' });
+      const result = await updateSettings(localSettings);
+      setMessage({ 
+        type: 'success', 
+        text: '✅ ' + result.message + ' Click "Reload Website" to see all changes.' 
+      });
       setHasChanges(false);
-      setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: '❌ Error saving settings: ' + error.message });
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleReloadWebsite = () => {
+    // Force a hard reload to apply all settings
+    window.location.reload();
   };
 
   const handleReset = async () => {
@@ -188,6 +195,14 @@ export default function SiteSettingsManager() {
           >
             <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
           </button>
+          {!hasChanges && (
+            <button
+              onClick={handleReloadWebsite}
+              className="btn-secondary flex items-center gap-2"
+            >
+              🔄 Reload Website
+            </button>
+          )}
         </div>
       </div>
 
