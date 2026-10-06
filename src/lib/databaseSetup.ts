@@ -1,10 +1,10 @@
--- ============================================
--- COMPLETE DATABASE SETUP - RUN THIS NOW
--- ============================================
--- Copy this ENTIRE SQL and run it in Supabase SQL Editor
--- This will fix ALL table errors
+import { supabase } from './supabase';
 
--- 1. CREATE HERO BANNERS TABLE
+/**
+ * SQL to create all required tables
+ */
+const CREATE_TABLES_SQL = `
+-- Create hero_banners table
 CREATE TABLE IF NOT EXISTS hero_banners (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS hero_banners (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 2. CREATE GALLERY CATEGORIES TABLE
+-- Create gallery_categories table
 CREATE TABLE IF NOT EXISTS gallery_categories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS gallery_categories (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3. CREATE GALLERY IMAGES TABLE
+-- Create gallery_images table
 CREATE TABLE IF NOT EXISTS gallery_images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   category_id UUID REFERENCES gallery_categories(id) ON DELETE CASCADE,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS gallery_images (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 4. CREATE COLLECTIONS TABLE
+-- Create collections table
 CREATE TABLE IF NOT EXISTS collections (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS collections (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 5. CREATE INVOICES TABLE
+-- Create invoices table
 CREATE TABLE IF NOT EXISTS invoices (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
@@ -95,10 +95,10 @@ CREATE TABLE IF NOT EXISTS invoices (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 6. ADD INVOICE_NUMBER COLUMN TO ORDERS
+-- Add invoice_number to orders if not exists
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number TEXT;
 
--- 7. CREATE INDEXES FOR PERFORMANCE
+-- Create indexes
 CREATE INDEX IF NOT EXISTS idx_hero_banners_active ON hero_banners(is_active);
 CREATE INDEX IF NOT EXISTS idx_hero_banners_order ON hero_banners(display_order);
 CREATE INDEX IF NOT EXISTS idx_gallery_categories_active ON gallery_categories(is_active);
@@ -111,46 +111,45 @@ CREATE INDEX IF NOT EXISTS idx_collections_order ON collections(display_order);
 CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON invoices(order_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_invoice_number ON invoices(invoice_number);
 
--- 8. ENABLE ROW LEVEL SECURITY
+-- Enable RLS
 ALTER TABLE hero_banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
--- 9. CREATE RLS POLICIES
-
--- Hero Banners
+-- Create RLS policies
 DROP POLICY IF EXISTS "hero_banners_public_read" ON hero_banners;
 CREATE POLICY "hero_banners_public_read" ON hero_banners FOR SELECT USING (is_active = true);
+
 DROP POLICY IF EXISTS "hero_banners_admin_all" ON hero_banners;
 CREATE POLICY "hero_banners_admin_all" ON hero_banners FOR ALL USING (true);
 
--- Gallery Categories
 DROP POLICY IF EXISTS "gallery_categories_public_read" ON gallery_categories;
 CREATE POLICY "gallery_categories_public_read" ON gallery_categories FOR SELECT USING (is_active = true);
+
 DROP POLICY IF EXISTS "gallery_categories_admin_all" ON gallery_categories;
 CREATE POLICY "gallery_categories_admin_all" ON gallery_categories FOR ALL USING (true);
 
--- Gallery Images
 DROP POLICY IF EXISTS "gallery_images_public_read" ON gallery_images;
 CREATE POLICY "gallery_images_public_read" ON gallery_images FOR SELECT USING (is_active = true);
+
 DROP POLICY IF EXISTS "gallery_images_admin_all" ON gallery_images;
 CREATE POLICY "gallery_images_admin_all" ON gallery_images FOR ALL USING (true);
 
--- Collections
 DROP POLICY IF EXISTS "collections_public_read" ON collections;
 CREATE POLICY "collections_public_read" ON collections FOR SELECT USING (is_active = true);
+
 DROP POLICY IF EXISTS "collections_admin_all" ON collections;
 CREATE POLICY "collections_admin_all" ON collections FOR ALL USING (true);
 
--- Invoices
 DROP POLICY IF EXISTS "invoices_public_read" ON invoices;
 CREATE POLICY "invoices_public_read" ON invoices FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "invoices_admin_all" ON invoices;
 CREATE POLICY "invoices_admin_all" ON invoices FOR ALL USING (true);
 
--- 10. CREATE STORAGE BUCKET
+-- Create website-content storage bucket
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'website-content',
@@ -161,7 +160,7 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- 11. CREATE STORAGE POLICIES
+-- Create storage policies
 DROP POLICY IF EXISTS "website_content_public_read" ON storage.objects;
 CREATE POLICY "website_content_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'website-content');
 
@@ -173,12 +172,137 @@ CREATE POLICY "website_content_auth_update" ON storage.objects FOR UPDATE USING 
 
 DROP POLICY IF EXISTS "website_content_auth_delete" ON storage.objects;
 CREATE POLICY "website_content_auth_delete" ON storage.objects FOR DELETE USING (bucket_id = 'website-content' AND auth.role() = 'authenticated');
+`;
 
--- 12. VERIFY SETUP
-SELECT 
-  '✅ Database setup complete!' AS status,
-  (SELECT COUNT(*) FROM hero_banners) AS hero_banners_count,
-  (SELECT COUNT(*) FROM gallery_categories) AS gallery_categories_count,
-  (SELECT COUNT(*) FROM gallery_images) AS gallery_images_count,
-  (SELECT COUNT(*) FROM collections) AS collections_count,
-  (SELECT COUNT(*) FROM invoices) AS invoices_count;
+/**
+ * Check if a table exists
+ */
+export async function tableExists(tableName: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from(tableName)
+      .select('id')
+      .limit(1);
+
+    // If no error or error is not "relation does not exist", table exists
+    return !error || !error.message.includes('does not exist');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if all required tables exist
+ */
+export async function checkRequiredTables(): Promise<{
+  allExist: boolean;
+  missing: string[];
+}> {
+  const requiredTables = [
+    'hero_banners',
+    'gallery_categories',
+    'gallery_images',
+    'collections',
+    'invoices',
+  ];
+
+  const missing: string[] = [];
+
+  for (const table of requiredTables) {
+    const exists = await tableExists(table);
+    if (!exists) {
+      missing.push(table);
+    }
+  }
+
+  return {
+    allExist: missing.length === 0,
+    missing,
+  };
+}
+
+/**
+ * Create all required tables
+ */
+export async function createRequiredTables(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Try to execute the SQL via RPC (if function exists)
+    const { error: rpcError } = await supabase.rpc('exec_sql', {
+      sql_query: CREATE_TABLES_SQL,
+    });
+
+    if (!rpcError) {
+      return { success: true };
+    }
+
+    // If RPC doesn't exist, we need to inform the user
+    if (rpcError?.message.includes('function') || rpcError?.message.includes('rpc')) {
+      return {
+        success: false,
+        error: 'Database setup required. Please run the SQL migration manually.',
+      };
+    }
+
+    return {
+      success: false,
+      error: rpcError?.message || 'Failed to create tables',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Failed to create tables',
+    };
+  }
+}
+
+/**
+ * Ensure all required tables exist, create them if they don't
+ */
+export async function ensureTablesExist(): Promise<{
+  success: boolean;
+  created: boolean;
+  error?: string;
+}> {
+  try {
+    // Check if tables exist
+    const { allExist, missing } = await checkRequiredTables();
+
+    if (allExist) {
+      return { success: true, created: false };
+    }
+
+    console.log(`⚠️ Missing tables: ${missing.join(', ')}`);
+    console.log('🔧 Creating missing tables...');
+
+    // Try to create tables
+    const result = await createRequiredTables();
+
+    if (result.success) {
+      console.log('✅ Tables created successfully');
+      return { success: true, created: true };
+    }
+
+    // If automatic creation failed, provide manual instructions
+    return {
+      success: false,
+      created: false,
+      error: result.error,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      created: false,
+      error: error.message || 'Failed to ensure tables exist',
+    };
+  }
+}
+
+/**
+ * Get the SQL for manual execution
+ */
+export function getSetupSQL(): string {
+  return CREATE_TABLES_SQL;
+}
