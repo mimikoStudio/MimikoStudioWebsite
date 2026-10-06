@@ -46,6 +46,7 @@ export interface SiteSettings {
   
   // Social Media
   instagram_url: string;
+  instagram_handle: string;
   facebook_url: string;
   youtube_url: string;
   pinterest_url: string;
@@ -143,6 +144,7 @@ export const defaultSiteSettings: SiteSettings = {
   
   // Social Media
   instagram_url: 'https://www.instagram.com/mimiko.studio24/',
+  instagram_handle: '@mimiko.studio24',
   facebook_url: '',
   youtube_url: '',
   pinterest_url: '',
