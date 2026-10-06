@@ -18,6 +18,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SetupGuide from './pages/SetupGuide';
 import DatabaseSetup from './pages/DatabaseSetup';
+import SignatureCollections from './pages/SignatureCollections';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
                       <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/collections" element={<Collections />} />
+                        <Route path="/signature-collections" element={<SignatureCollections />} />
                         <Route path="/shop" element={<Shop />} />
                         <Route path="/product/:slug" element={<ProductDetail />} />
                         <Route path="/cart" element={<Cart />} />

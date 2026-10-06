@@ -124,9 +124,40 @@ export default function Shop() {
             </div>
           )}
 
+          {/* Debug Info - Remove after fixing */}
+          {!loading && sortedProducts.length > 0 && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded text-xs">
+              <p className="font-bold">🔍 Debug Info:</p>
+              <p>Total products: {sortedProducts.length}</p>
+              <p>Products with images: {sortedProducts.filter(p => p.images && p.images.length > 0).length}</p>
+              <p>Products without images: {sortedProducts.filter(p => !p.images || p.images.length === 0).length}</p>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-bold">Show product details</summary>
+                <pre className="mt-2 overflow-auto max-h-96">
+                  {JSON.stringify(sortedProducts.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    images_count: p.images?.length || 0,
+                    first_image: p.images?.[0]?.image_url?.substring(0, 50) || 'none'
+                  })), null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
+
           {!loading && sortedProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product, idx) => (
+              {sortedProducts.map((product, idx) => {
+                // Debug log for each product
+                console.log(`📦 Product ${idx}:`, {
+                  name: product.name,
+                  images_count: product.images?.length || 0,
+                  first_image_url: product.images?.[0]?.image_url?.substring(0, 100) || 'none',
+                  image_type: product.images?.[0]?.image_url?.startsWith('data:') ? 'base64' : 
+                             product.images?.[0]?.image_url?.startsWith('http') ? 'url' : 'unknown'
+                });
+
+                return (
                 <Link key={product.id} to={`/product/${product.slug}`} className="curved-card bg-pearl group block shadow-curved hover:shadow-curved-lg transition-all duration-300 hover:-translate-y-1">
                   <div className="relative aspect-square bg-gradient-to-br from-cream to-beige/20 flex items-center justify-center curved-image">
                     {product.images && product.images.length > 0 && product.images[0]?.image_url ? (
@@ -135,7 +166,12 @@ export default function Shop() {
                         alt={product.name} 
                         className="w-full h-full object-cover product-image-hover"
                         loading="lazy"
+                        onLoad={() => console.log(`✅ Image loaded for: ${product.name}`)}
                         onError={(e) => {
+                          console.error(`❌ Image failed to load for: ${product.name}`, {
+                            url: product.images?.[0]?.image_url?.substring(0, 100),
+                            error: e
+                          });
                           e.currentTarget.style.display = 'none';
                           const parent = e.currentTarget.parentElement;
                           if (parent && !parent.querySelector('.emoji-fallback')) {
@@ -205,7 +241,8 @@ export default function Shop() {
                     </a>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
