@@ -60,21 +60,82 @@ export default function SiteSettingsManager() {
 
   const handleImageUpload = async (key: string, file: File) => {
     try {
+      setMessage({ type: 'success', text: '📤 Uploading image...' });
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${key}/${Date.now()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
+      // Try website-content bucket first
+      let uploadError: any = null;
+      let publicUrl = '';
+      
+      try {
+        const { error } = await supabase.storage
+          .from('website-content')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+        
+        if (error) {
+          uploadError = error;
+        } else {
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('website-content')
+            .getPublicUrl(fileName);
+          publicUrl = url;
+        }
+      } catch (err: any) {
+        uploadError = err;
+      }
+      
+      // If website-content fails, try product-images bucket
+      if (uploadError) {
+        console.log('website-content bucket failed, trying product-images...');
+        try {
+          const { error } = await supabase.storage
+            .from('product-images')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+          
+          if (error) {
+            uploadError = error;
+          } else {
+            const { data: { publicUrl: url } } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(fileName);
+            publicUrl = url;
+            uploadError = null;
+          }
+        } catch (err: any) {
+          uploadError = err;
+        }
+      }
+      
+      // If both buckets fail, convert to base64
+      if (uploadError) {
+        console.log('Both buckets failed, converting to base64...');
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          updateLocalSetting(key, base64);
+          setMessage({ type: 'success', text: '✅ Image uploaded successfully (stored as base64)' });
+        };
+        reader.onerror = () => {
+          setMessage({ type: 'error', text: '❌ Error uploading image: ' + uploadError.message });
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+      
+      // Save the public URL
       updateLocalSetting(key, publicUrl);
+      setMessage({ type: 'success', text: '✅ Image uploaded successfully!' });
+      
     } catch (error: any) {
+      console.error('Upload error:', error);
       setMessage({ type: 'error', text: '❌ Error uploading image: ' + error.message });
     }
   };
@@ -842,16 +903,27 @@ function InquirySettings({ settings, onUpdate }: any) {
 // Image Upload Field Component
 function ImageUploadField({ value, onChange, placeholder }: any) {
   const [preview, setPreview] = useState(value);
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    setPreview(value);
+  }, [value]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setUploading(true);
+      
+      // Show preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      onChange(file);
+      
+      // Upload file
+      await onChange(file);
+      setUploading(false);
     }
   };
 
@@ -860,18 +932,30 @@ function ImageUploadField({ value, onChange, placeholder }: any) {
       {preview && (
         <div className="relative w-32 h-32 border border-beige/30 rounded-sm overflow-hidden">
           <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+          {uploading && (
+            <div className="absolute inset-0 bg-chocolate/50 flex items-center justify-center">
+              <div className="spinner-luxury" />
+            </div>
+          )}
         </div>
       )}
       <label className="block">
         <div className="border-2 border-dashed border-beige hover:border-gold rounded-sm p-4 text-center cursor-pointer transition-colors">
-          <Upload size={24} className="mx-auto text-gold mb-2" />
-          <p className="text-xs text-coffee/60">{placeholder || 'Click to upload'}</p>
+          {uploading ? (
+            <div className="spinner-luxury mx-auto" />
+          ) : (
+            <>
+              <Upload size={24} className="mx-auto text-gold mb-2" />
+              <p className="text-xs text-coffee/60">{placeholder || 'Click to upload'}</p>
+            </>
+          )}
         </div>
         <input
           type="file"
           accept="image/*"
           onChange={handleFileChange}
           className="hidden"
+          disabled={uploading}
         />
       </label>
     </div>
