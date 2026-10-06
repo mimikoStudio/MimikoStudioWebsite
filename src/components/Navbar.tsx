@@ -8,7 +8,7 @@ const navLinks = [
   { label: '🏠 Home', path: '/' },
   { label: '🛍️ Shop', path: '/shop' },
   { label: '🎨 Custom Creations', path: '/custom-creations' },
-  { label: '💎 Signature', path: '/collections' },
+  { label: '💎 Signature Collections', path: '/signature-collections' },
   { label: '📅 Book Appointment', path: '/book-appointment' },
   { label: '🐼 Our Story', path: '/our-story' },
   { label: '📸 Gallery', path: '/gallery' },
