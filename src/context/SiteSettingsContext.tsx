@@ -52,6 +52,8 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = async (newSettings: Partial<SiteSettings>) => {
     try {
+      console.log('🔧 Starting settings update...', { newSettings });
+      
       const updatedSettings = { ...settings, ...newSettings, updated_at: new Date().toISOString() };
       
       // Save each setting to database
@@ -60,13 +62,14 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         setting_value: typeof value === 'object' ? JSON.stringify(value) : String(value),
       }));
 
+      let savedCount = 0;
       for (const update of updates) {
         const { error } = await supabase
           .from('site_settings')
           .upsert(update, { onConflict: 'setting_key' });
 
         if (error) {
-          console.error('Failed to save setting:', {
+          console.error('❌ Failed to save setting:', {
             key: update.setting_key,
             error: error.message,
             details: error.details,
@@ -74,7 +77,10 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
           });
           throw new Error(`Failed to save setting "${update.setting_key}": ${error.message}`);
         }
+        savedCount++;
       }
+
+      console.log(`✅ Saved ${savedCount} settings to database`);
 
       // Update local state
       setSettings(updatedSettings);
@@ -88,18 +94,23 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
       
-      // Force reload of images by adding timestamp to URLs
+      // Force reload of ALL images by adding timestamp to URLs
       const timestamp = Date.now();
-      document.querySelectorAll('img[data-site-image]').forEach(img => {
+      document.querySelectorAll('img').forEach(img => {
         const src = img.getAttribute('src');
-        if (src && !src.includes('timestamp=')) {
+        if (src && !src.startsWith('data:') && !src.includes('timestamp=')) {
           img.setAttribute('src', `${src}${src.includes('?') ? '&' : '?'}timestamp=${timestamp}`);
         }
       });
       
-      return { success: true, message: 'Settings saved successfully' };
+      // Dispatch custom event to notify all components
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updatedSettings }));
+      
+      console.log('✅ Settings updated and applied successfully');
+      
+      return { success: true, message: 'Settings saved successfully! Refresh the page to see all changes.' };
     } catch (error: any) {
-      console.error('Error updating settings:', {
+      console.error('❌ Error updating settings:', {
         error: error.message,
         stack: error.stack
       });
@@ -125,7 +136,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const applyTheme = (themeSettings: SiteSettings) => {
     const root = document.documentElement;
     
-    // Apply colors
+    // Apply colors as CSS variables
     root.style.setProperty('--color-primary', themeSettings.primary_color);
     root.style.setProperty('--color-secondary', themeSettings.secondary_color);
     root.style.setProperty('--color-accent', themeSettings.accent_color);
@@ -137,6 +148,8 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--color-border', themeSettings.border_color);
     root.style.setProperty('--color-button', themeSettings.button_color);
     root.style.setProperty('--color-button-hover', themeSettings.button_hover_color);
+    root.style.setProperty('--color-header-bg', themeSettings.header_background_color);
+    root.style.setProperty('--color-footer-bg', themeSettings.footer_background_color);
     
     // Apply fonts
     root.style.setProperty('--font-heading', themeSettings.font_heading);
@@ -146,6 +159,25 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--font-weight-heading', themeSettings.heading_weight);
     root.style.setProperty('--font-weight-body', themeSettings.body_weight);
     root.style.setProperty('--letter-spacing', themeSettings.letter_spacing);
+    
+    // Force re-render by updating a data attribute
+    root.setAttribute('data-theme-version', Date.now().toString());
+    
+    // Update document title
+    if (themeSettings.site_name) {
+      document.title = `${themeSettings.site_name} | ${themeSettings.site_tagline || 'Fabric Art'}`;
+    }
+    
+    // Update favicon if available
+    if (themeSettings.favicon_url) {
+      let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = themeSettings.favicon_url;
+    }
   };
 
   // Apply theme on initial load

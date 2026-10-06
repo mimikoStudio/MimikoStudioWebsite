@@ -1,9 +1,20 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { INSTAGRAM_URL, WHATSAPP_URL } from '../lib/supabase';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export default function Footer() {
   const { settings } = useSiteSettings();
+
+  // Listen for settings updates
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      console.log('🎨 Footer: Settings updated, re-rendering...');
+    };
+
+    window.addEventListener('settingsUpdated', handleSettingsUpdate);
+    return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+  }, []);
 
   return (
     <footer className="bg-chocolate text-ivory/80">

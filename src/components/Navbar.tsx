@@ -32,6 +32,18 @@ export default function Navbar() {
     setIsMobileOpen(false);
   }, [location]);
 
+  // Listen for settings updates
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      console.log('🎨 Navbar: Settings updated, re-rendering...');
+      // Force re-render by updating state
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('settingsUpdated', handleSettingsUpdate);
+    return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+  }, []);
+
   const isHome = location.pathname === '/';
   const isSolid = isScrolled || !isHome;
   const navBg = isSolid ? 'bg-ivory/95 nav-glass shadow-luxury' : 'bg-transparent';
