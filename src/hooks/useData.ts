@@ -30,7 +30,7 @@ export function useProducts(filters?: {
     try {
       let query = supabase
         .from('products')
-        .select('*, product_images(*), categories(*)')
+        .select('*, images:product_images(*), category:categories(*)')
         .order('created_at', { ascending: false });
 
       // Only filter by is_published if showAll is false
