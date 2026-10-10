@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useDashboardStats, useInquiries, useAppointments, useProducts } from '../../hooks/useData';
+import { useI18n } from '../../i18n/I18nContext';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 import ProductsManager from '../../components/admin/ProductsManager';
 import InquiriesManager from '../../components/admin/InquiriesManager';
 import AppointmentsManager from '../../components/admin/AppointmentsManager';
@@ -26,6 +28,7 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     checkAuth();
@@ -106,7 +109,10 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-ivory/10">
+        <div className="p-4 border-t border-ivory/10 space-y-2">
+          <div className="px-4 py-2">
+            <LanguageSwitcher />
+          </div>
           <Link to="/" className="flex items-center gap-3 px-4 py-3 text-sm text-ivory/60 hover:text-ivory transition-colors">
             <Eye size={16} /> View Website
           </Link>
