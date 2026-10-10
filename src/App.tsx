@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { I18nProvider } from './i18n/I18nContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -23,44 +24,46 @@ import SignatureCollections from './pages/SignatureCollections';
 function App() {
   return (
     <ErrorBoundary>
-      <HashRouter>
-        <CartProvider>
-          <div className="min-h-screen flex flex-col bg-ivory">
-            <Routes>
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/setup" element={<DatabaseSetup />} />
-              <Route path="/admin/*" element={<AdminDashboard />} />
-              <Route path="/setup" element={<SetupGuide />} />
-              <Route path="/db-setup" element={<DatabaseSetup />} />
-              <Route
-                path="/*"
-                element={
-                  <>
-                    <Navbar />
-                    <main className="flex-1">
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/collections" element={<Collections />} />
-                        <Route path="/signature-collections" element={<SignatureCollections />} />
-                        <Route path="/shop" element={<Shop />} />
-                        <Route path="/product/:slug" element={<ProductDetail />} />
-                        <Route path="/cart" element={<Cart />} />
-                        <Route path="/custom-creations" element={<CustomCreations />} />
-                        <Route path="/book-appointment" element={<BookAppointment />} />
-                        <Route path="/our-story" element={<OurStory />} />
-                        <Route path="/gallery" element={<Gallery />} />
-                        <Route path="/contact" element={<Contact />} />
-                      </Routes>
-                    </main>
-                    <Footer />
-                    <FloatingWhatsAppButton />
-                  </>
-                }
-              />
-            </Routes>
-          </div>
-        </CartProvider>
-      </HashRouter>
+      <I18nProvider>
+        <HashRouter>
+          <CartProvider>
+            <div className="min-h-screen flex flex-col bg-ivory">
+              <Routes>
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/setup" element={<DatabaseSetup />} />
+                <Route path="/admin/*" element={<AdminDashboard />} />
+                <Route path="/setup" element={<SetupGuide />} />
+                <Route path="/db-setup" element={<DatabaseSetup />} />
+                <Route
+                  path="/*"
+                  element={
+                    <>
+                      <Navbar />
+                      <main className="flex-1">
+                        <Routes>
+                          <Route path="/" element={<Home />} />
+                          <Route path="/collections" element={<Collections />} />
+                          <Route path="/signature-collections" element={<SignatureCollections />} />
+                          <Route path="/shop" element={<Shop />} />
+                          <Route path="/product/:slug" element={<ProductDetail />} />
+                          <Route path="/cart" element={<Cart />} />
+                          <Route path="/custom-creations" element={<CustomCreations />} />
+                          <Route path="/book-appointment" element={<BookAppointment />} />
+                          <Route path="/our-story" element={<OurStory />} />
+                          <Route path="/gallery" element={<Gallery />} />
+                          <Route path="/contact" element={<Contact />} />
+                        </Routes>
+                      </main>
+                      <Footer />
+                      <FloatingWhatsAppButton />
+                    </>
+                  }
+                />
+              </Routes>
+            </div>
+          </CartProvider>
+        </HashRouter>
+      </I18nProvider>
     </ErrorBoundary>
   );
 }

@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, ShoppingBag, Share2, MessageCircle } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Heart, ShoppingBag, MessageCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { supabase } from '../lib/supabase';
-import { createWhatsAppLink } from '../lib/supabase';
+import { supabase, createWhatsAppLink } from '../lib/supabase';
 import { getStockStatus } from '../lib/stockValidation';
 import { getImageUrl } from '../lib/imageUtils';
+import FabricImageViewer from '../components/FabricImageViewer';
+import { useI18n } from '../i18n/I18nContext';
 import type { Product } from '../types';
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const { addItem, toggleWishlist, isInWishlist } = useCart();
+  const { t } = useI18n();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +20,7 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -38,7 +40,7 @@ export default function ProductDetail() {
       if (error) throw error;
       setProduct(data);
     } catch (err) {
-      // Error handled silently
+      console.error('Error fetching product:', err);
     } finally {
       setLoading(false);
     }
@@ -57,8 +59,8 @@ export default function ProductDetail() {
       <div className="pt-20 min-h-screen bg-ivory flex items-center justify-center">
         <div className="text-center">
           <span className="text-6xl block mb-4">🔍</span>
-          <h2 className="font-heading text-2xl text-chocolate mb-4">Product Not Found</h2>
-          <Link to="/shop" className="btn-primary">Back to Shop</Link>
+          <h2 className="font-heading text-2xl text-chocolate mb-4">{t.messages.notFound}</h2>
+          <Link to="/shop" className="btn-primary">{t.common.back}</Link>
         </div>
       </div>
     );
@@ -70,12 +72,20 @@ export default function ProductDetail() {
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
+  // Prepare images for viewer
+  const viewerImages = images.map(img => ({
+    url: getImageUrl(img.image_url) || '',
+    alt: img.alt_text || product.name,
+    title: img.alt_text,
+    description: product.description,
+  }));
+
   return (
     <div className="pt-20 bg-ivory min-h-screen">
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <Link to="/shop" className="inline-flex items-center gap-2 text-sm text-coffee/60 hover:text-gold transition-colors">
-          <ArrowLeft size={16} /> Back to Shop
+          <ArrowLeft size={16} /> {t.common.back}
         </Link>
       </div>
 
@@ -85,14 +95,17 @@ export default function ProductDetail() {
           {/* Image Gallery */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="aspect-square bg-gradient-to-br from-cream to-beige/20 curved-image-lg overflow-hidden border border-beige/20 shadow-curved">
+            <div 
+              className="aspect-square bg-gradient-to-br from-cream to-beige/20 curved-image-lg overflow-hidden border border-beige/20 shadow-curved cursor-zoom-in group relative"
+              onClick={() => setIsViewerOpen(true)}
+            >
               {images.length > 0 && images[selectedImage]?.image_url ? (
                 <img
                   src={getImageUrl(images[selectedImage].image_url) || ''}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
-                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23F5F5F5" width="400" height="400"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="24" fill="%23999"%3EImage unavailable%3C/text%3E%3C/svg%3E';
+                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23F5F5F5" width="400" height="400"%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="24" fill="%23999"%3EImage unavailable%3C/text%3E%3C/svg%3E';
                   }}
                 />
               ) : (
@@ -100,6 +113,12 @@ export default function ProductDetail() {
                   📦
                 </div>
               )}
+              {/* Zoom hint overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3">
+                  <span className="text-2xl">🔍</span>
+                </div>
+              </div>
             </div>
 
             {/* Thumbnail Gallery */}
@@ -121,7 +140,7 @@ export default function ProductDetail() {
                         alt={`${product.name} view ${idx + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23F5F5F5" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="12" fill="%23999"%3ENo image%3C/text%3E%3C/svg%3E';
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23F5F5F5" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="12" fill="%23999"%3ENo image%3C/text%3E%3C/svg%3E';
                         }}
                       />
                     ) : (
@@ -190,7 +209,7 @@ export default function ProductDetail() {
             {product.sizes && product.sizes.length > 0 && (
               <div>
                 <p className="text-xs font-label tracking-wider uppercase text-coffee/70 mb-3">
-                  Select Size
+                  {t.product.size}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {product.sizes.map((size) => (
@@ -214,7 +233,7 @@ export default function ProductDetail() {
             {product.colors && product.colors.length > 0 && (
               <div>
                 <p className="text-xs font-label tracking-wider uppercase text-coffee/70 mb-3">
-                  Select Color
+                  {t.product.color}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {product.colors.map((color) => (
@@ -237,7 +256,7 @@ export default function ProductDetail() {
             {/* Quantity */}
             <div>
               <p className="text-xs font-label tracking-wider uppercase text-coffee/70 mb-3">
-                Quantity {product.stock_quantity > 0 && `(Max: ${product.stock_quantity})`}
+                {t.product.quantity} {product.stock_quantity > 0 && `(Max: ${product.stock_quantity})`}
               </p>
               <div className="flex items-center gap-3">
                 <button
@@ -273,7 +292,7 @@ export default function ProductDetail() {
                 className="btn-primary curved-button flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBag size={18} />
-                {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {product.stock_quantity === 0 ? t.product.outOfStock : t.product.addToCart}
               </button>
               <button
                 onClick={() => toggleWishlist(product.id)}
@@ -297,7 +316,7 @@ export default function ProductDetail() {
               className="btn-secondary curved-button w-full flex items-center justify-center gap-2"
             >
               <MessageCircle size={18} />
-              Inquire on WhatsApp
+              {t.product.inquireOnWhatsApp}
             </a>
 
             {/* Product Details */}
@@ -305,7 +324,7 @@ export default function ProductDetail() {
               {product.material && (
                 <div className="flex items-start gap-3">
                   <span className="text-xs font-label tracking-wider uppercase text-coffee/50 w-24">
-                    Material
+                    {t.product.material}
                   </span>
                   <span className="text-sm text-chocolate">{product.material}</span>
                 </div>
@@ -336,6 +355,16 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Fabric Image Viewer */}
+      {viewerImages.length > 0 && (
+        <FabricImageViewer
+          images={viewerImages}
+          initialIndex={selectedImage}
+          isOpen={isViewerOpen}
+          onClose={() => setIsViewerOpen(false)}
+        />
+      )}
     </div>
   );
 }
