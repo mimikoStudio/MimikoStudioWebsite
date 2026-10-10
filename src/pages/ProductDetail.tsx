@@ -29,13 +29,49 @@ export default function ProductDetail() {
   }, [slug]);
 
   const fetchProduct = async () => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
+      // Try exact slug match first
+      let { data, error } = await supabase
         .from('products')
         .select('*, product_images(*), categories(*)')
         .eq('slug', slug)
         .eq('is_published', true)
         .single();
+
+      // If not found, try case-insensitive match
+      if (error || !data) {
+        const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
+          .from('products')
+          .select('*, product_images(*), categories(*)')
+          .ilike('slug', slug)
+          .eq('is_published', true)
+          .single();
+        
+        if (!caseInsensitiveError && caseInsensitiveData) {
+          data = caseInsensitiveData;
+          error = null;
+        }
+      }
+
+      // If still not found, try matching by product name (for backward compatibility)
+      if (error || !data) {
+        const { data: nameMatchData, error: nameMatchError } = await supabase
+          .from('products')
+          .select('*, product_images(*), categories(*)')
+          .ilike('name', slug.replace(/-/g, ' '))
+          .eq('is_published', true)
+          .single();
+        
+        if (!nameMatchError && nameMatchData) {
+          data = nameMatchData;
+          error = null;
+        }
+      }
 
       if (error) throw error;
       setProduct(data);
