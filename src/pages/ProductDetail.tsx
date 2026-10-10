@@ -39,6 +39,7 @@ export default function ProductDetail() {
   const { addItem, toggleWishlist, isInWishlist } = useCart();
   const { t } = useI18n();
   
+  // All state hooks must be declared at the top
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -46,12 +47,22 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews' | 'shipping'>('description');
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
+  // All useEffect hooks must be declared at the top
   useEffect(() => {
     if (slug) {
       fetchProduct();
     }
   }, [slug]);
+
+  useEffect(() => {
+    if (product?.category_id) {
+      fetchRelatedProducts();
+    }
+  }, [product]);
 
   const fetchProduct = async () => {
     if (!slug) {
@@ -107,6 +118,58 @@ export default function ProductDetail() {
     }
   };
 
+  const fetchRelatedProducts = async () => {
+    if (!product?.category_id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, product_images(*), categories(*)')
+        .eq('category_id', product.category_id)
+        .eq('is_published', true)
+        .neq('id', product.id)
+        .limit(4);
+
+      if (!error && data) {
+        setRelatedProducts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching related products:', err);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    const result = await addItem(product, quantity, selectedSize, selectedColor);
+    if (result.success) {
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+    } else {
+      alert(result.message);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!product) return;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} - ₹${product.sale_price || product.price}`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  // Early returns must come AFTER all hooks
   if (loading) {
     return (
       <div className="pt-20 min-h-screen bg-ivory flex items-center justify-center">
@@ -141,63 +204,7 @@ export default function ProductDetail() {
     description: product.description,
   }));
 
-  const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews' | 'shipping'>('description');
-  const [addedToCart, setAddedToCart] = useState(false);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-
   // Fetch related products
-  useEffect(() => {
-    if (product?.category_id) {
-      fetchRelatedProducts();
-    }
-  }, [product]);
-
-  const fetchRelatedProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, product_images(*), categories(*)')
-        .eq('category_id', product!.category_id)
-        .eq('is_published', true)
-        .neq('id', product!.id)
-        .limit(4);
-
-      if (!error && data) {
-        setRelatedProducts(data);
-      }
-    } catch (err) {
-      console.error('Error fetching related products:', err);
-    }
-  };
-
-  const handleAddToCart = async () => {
-    const result = await addItem(product!, quantity, selectedSize, selectedColor);
-    if (result.success) {
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 2000);
-    } else {
-      alert(result.message);
-    }
-  };
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: product!.name,
-          text: `Check out ${product!.name} - ₹${product!.sale_price || product!.price}`,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.error('Error sharing:', err);
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
-    }
-  };
-
   const stockStatus = getStockStatus(product.stock_quantity);
 
   return (
