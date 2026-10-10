@@ -2,8 +2,12 @@ export interface Product {
   id: string;
   category_id: string;
   name: string;
+  name_hi?: string;
+  name_gu?: string;
   slug: string;
   description: string;
+  description_hi?: string;
+  description_gu?: string;
   price: number;
   sale_price: number | null;
   stock_quantity: number;
@@ -14,6 +18,13 @@ export interface Product {
   is_featured: boolean;
   is_new_arrival: boolean;
   is_published: boolean;
+  sku?: string;
+  fabric_type?: string;
+  dimensions?: string;
+  pattern?: string;
+  seo_title?: string;
+  seo_description?: string;
+  share_url?: string;
   created_at: string;
   updated_at: string;
   images?: ProductImage[];
@@ -32,13 +43,23 @@ export interface ProductImage {
 export interface Category {
   id: string;
   name: string;
+  name_hi?: string;
+  name_gu?: string;
   slug: string;
   description: string;
+  description_hi?: string;
+  description_gu?: string;
   image_url: string;
+  icon?: string;
   display_order: number;
   is_active: boolean;
+  is_featured?: boolean;
+  parent_id?: string;
+  seo_title?: string;
+  seo_description?: string;
   created_at: string;
   updated_at: string;
+  children?: Category[];
 }
 
 export interface Inquiry {
@@ -193,4 +214,80 @@ export interface DashboardStats {
   newAppointments: number;
   confirmedAppointments: number;
   totalOrders: number;
+}
+
+// Dynamic Content Management Types
+export interface WebsiteContentSection {
+  id: string;
+  section_key: string;
+  section_name: string;
+  section_type: 'hero' | 'banner' | 'notification' | 'button' | 'textbox';
+  content_en?: string;
+  content_hi?: string;
+  content_gu?: string;
+  image_url?: string;
+  button_label_en?: string;
+  button_label_hi?: string;
+  button_label_gu?: string;
+  button_url?: string;
+  is_visible: boolean;
+  display_order: number;
+  config?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DynamicNotification {
+  id: string;
+  notification_type: 'success' | 'error' | 'warning' | 'info' | 'promo';
+  title_en: string;
+  title_hi?: string;
+  title_gu?: string;
+  message_en: string;
+  message_hi?: string;
+  message_gu?: string;
+  is_active: boolean;
+  expires_at?: string;
+  target_audience: 'all' | 'customers' | 'admins';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessProfile {
+  id: string;
+  studio_name: string;
+  logo_url?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website_url?: string;
+  tax_registration?: string;
+  invoice_footer_en?: string;
+  invoice_footer_hi?: string;
+  invoice_footer_gu?: string;
+  business_terms_en?: string;
+  business_terms_hi?: string;
+  business_terms_gu?: string;
+  default_currency: string;
+  default_language: 'en' | 'hi' | 'gu';
+  social_links?: Record<string, string>;
+  updated_at: string;
+}
+
+export interface InvoiceSnapshot {
+  id: string;
+  invoice_id: string;
+  order_id: string;
+  snapshot_data: Record<string, any>;
+  created_at: string;
+  is_finalized: boolean;
+}
+
+export interface SharingAudit {
+  id: string;
+  entity_type: 'product' | 'invoice' | 'collection';
+  entity_id: string;
+  share_type: 'link' | 'pdf' | 'whatsapp' | 'email' | 'native';
+  shared_by?: string;
+  created_at: string;
 }

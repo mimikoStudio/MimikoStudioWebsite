@@ -19,9 +19,10 @@ import HeroBannerManager from '../../components/admin/HeroBannerManager';
 import GalleryManager from '../../components/admin/GalleryManager';
 import CollectionsManager from '../../components/admin/CollectionsManager';
 import WhatsAppSettingsManager from '../../components/admin/WhatsAppSettingsManager';
+import DynamicContentManager from '../../components/admin/DynamicContentManager';
 import AutoSetup from '../../components/admin/AutoSetup';
 
-type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'whatsapp' | 'settings';
+type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'dynamic-content' | 'whatsapp' | 'settings';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -68,6 +69,7 @@ export default function AdminDashboard() {
     { id: 'hero-banners' as Tab, label: '🎨 Hero Banners', icon: <Palette size={16} /> },
     { id: 'gallery' as Tab, label: '🖼️ Gallery', icon: <ImageIcon size={16} /> },
     { id: 'collections' as Tab, label: '💎 Collections', icon: <Palette size={16} /> },
+    { id: 'dynamic-content' as Tab, label: '📄 Dynamic Content', icon: <LayoutDashboard size={16} /> },
     { id: 'inquiries' as Tab, label: '💌 Inquiries', icon: <MessageSquare size={16} /> },
     { id: 'appointments' as Tab, label: '📅 Appointments', icon: <Calendar size={16} /> },
     { id: 'orders' as Tab, label: '📦 Orders', icon: <ShoppingCart size={16} /> },
@@ -131,6 +133,7 @@ export default function AdminDashboard() {
         {activeTab === 'hero-banners' && <HeroBannerManager />}
         {activeTab === 'gallery' && <GalleryManager />}
         {activeTab === 'collections' && <CollectionsManager />}
+        {activeTab === 'dynamic-content' && <DynamicContentManager />}
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
         {activeTab === 'orders' && <OrdersManager />}

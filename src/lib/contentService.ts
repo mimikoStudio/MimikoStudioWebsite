@@ -55,9 +55,15 @@ export interface GalleryImage {
 export interface Collection {
   id: string;
   name: string;
+  name_hi?: string;
+  name_gu?: string;
   slug: string;
   short_description?: string;
+  short_description_hi?: string;
+  short_description_gu?: string;
   long_description?: string;
+  long_description_hi?: string;
+  long_description_gu?: string;
   cover_image_url?: string;
   background_image_url?: string;
   button_text?: string;
