@@ -3,16 +3,18 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Search, Heart, ShoppingBag, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useI18n } from '../i18n/I18nContext';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const navLinks = [
-  { label: '🏠 Home', path: '/' },
-  { label: '🛍️ Shop', path: '/shop' },
-  { label: '🎨 Custom Creations', path: '/custom-creations' },
-  { label: '💎 Signature Collections', path: '/signature-collections' },
-  { label: '📅 Book Appointment', path: '/book-appointment' },
-  { label: '🐼 Our Story', path: '/our-story' },
-  { label: '📸 Gallery', path: '/gallery' },
-  { label: '💌 Contact', path: '/contact' },
+  { labelKey: 'nav.home', icon: '🏠', path: '/' },
+  { labelKey: 'nav.shop', icon: '🛍️', path: '/shop' },
+  { labelKey: 'nav.customCreations', icon: '🎨', path: '/custom-creations' },
+  { labelKey: 'nav.signatureCollections', icon: '💎', path: '/signature-collections' },
+  { labelKey: 'nav.bookAppointment', icon: '📅', path: '/book-appointment' },
+  { labelKey: 'nav.ourStory', icon: '🐼', path: '/our-story' },
+  { labelKey: 'nav.gallery', icon: '📸', path: '/gallery' },
+  { labelKey: 'nav.contact', icon: '💌', path: '/contact' },
 ];
 
 export default function Navbar() {
@@ -20,6 +22,7 @@ export default function Navbar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { totalItems } = useCart();
   const { settings } = useSiteSettings();
+  const { t } = useI18n();
   const location = useLocation();
 
   useEffect(() => {
@@ -97,7 +100,7 @@ export default function Navbar() {
                   location.pathname === link.path ? 'text-gold' : ''
                 }`}
               >
-                {link.label}
+                {link.icon} {(t as any)[link.labelKey.split('.')[0]][link.labelKey.split('.')[1]]}
                 {location.pathname === link.path && (
                   <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gold rounded-full" />
                 )}
@@ -107,6 +110,7 @@ export default function Navbar() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <button className={`hidden md:flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-gold/10 ${textColor}`} aria-label="Search">
               <Search size={16} />
             </button>
@@ -149,12 +153,13 @@ export default function Navbar() {
                   location.pathname === link.path ? 'text-gold bg-cream/30' : ''
                 }`}
               >
-                {link.label}
+                {link.icon} {(t as any)[link.labelKey.split('.')[0]][link.labelKey.split('.')[1]]}
               </Link>
             ))}
             <div className="pt-4 flex items-center gap-4 px-4">
+              <LanguageSwitcher />
               <Link to="/admin/login" className="text-xs text-coffee/60 hover:text-gold transition-colors">
-                👤 Admin
+                👤 {(t as any).nav.account}
               </Link>
             </div>
           </div>
