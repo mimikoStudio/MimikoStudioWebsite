@@ -17,6 +17,7 @@ import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import InvoiceView from './pages/admin/InvoiceView';
 import SetupGuide from './pages/SetupGuide';
 import DatabaseSetup from './pages/DatabaseSetup';
 import SignatureCollections from './pages/SignatureCollections';
@@ -29,10 +30,10 @@ function App() {
           <CartProvider>
             <div className="min-h-screen flex flex-col bg-ivory">
               <Routes>
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin/setup" element={<DatabaseSetup />} />
-                <Route path="/admin/*" element={<AdminDashboard />} />
-                <Route path="/setup" element={<SetupGuide />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/setup" element={<DatabaseSetup />} />
+              <Route path="/admin/invoice/:invoiceId" element={<InvoiceView />} />
+              <Route path="/admin/*" element={<AdminDashboard />} />                <Route path="/setup" element={<SetupGuide />} />
                 <Route path="/db-setup" element={<DatabaseSetup />} />
                 <Route
                   path="/*"
