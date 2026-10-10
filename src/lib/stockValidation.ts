@@ -174,35 +174,67 @@ export async function createOrderWithStockUpdate(
 
     // Step 4: Update stock (atomic operation)
     for (const item of orderItems) {
-      const { error: stockError } = await supabase.rpc('decrement_stock', {
-        product_id: item.product_id,
-        quantity: item.quantity,
-      });
+      // Try RPC function first (if it exists)
+      try {
+        const { error: stockError } = await supabase.rpc('decrement_stock', {
+          product_id: item.product_id,
+          quantity: item.quantity,
+        });
 
-      if (stockError) {
-        // If RPC function doesn't exist, use regular update
-        const { data: product } = await supabase
-          .from('products')
-          .select('stock_quantity')
-          .eq('id', item.product_id)
-          .single();
-
-        const newStock = (product?.stock_quantity || 0) - item.quantity;
-
-        if (newStock < 0) {
-          // Rollback: delete order and order items
-          await supabase.from('order_items').delete().eq('order_id', order.id);
-          await supabase.from('orders').delete().eq('id', order.id);
-          return {
-            success: false,
-            error: `Insufficient stock, cannot complete order`,
-          };
+        if (!stockError) {
+          continue; // Success, move to next item
         }
+      } catch (rpcError) {
+        // RPC function doesn't exist, use fallback
+      }
 
-        await supabase
-          .from('products')
-          .update({ stock_quantity: newStock })
-          .eq('id', item.product_id);
+      // Fallback: Manual stock update with validation
+      const { data: product, error: fetchError } = await supabase
+        .from('products')
+        .select('stock_quantity')
+        .eq('id', item.product_id)
+        .single();
+
+      if (fetchError || !product) {
+        // Rollback: delete order and order items
+        await supabase.from('order_items').delete().eq('order_id', order.id);
+        await supabase.from('orders').delete().eq('id', order.id);
+        return {
+          success: false,
+          error: `Product not found: ${item.product_id}`,
+        };
+      }
+
+      const currentStock = product.stock_quantity || 0;
+      const newStock = currentStock - item.quantity;
+
+      // Validate new stock is not negative
+      if (newStock < 0) {
+        // Rollback: delete order and order items
+        await supabase.from('order_items').delete().eq('order_id', order.id);
+        await supabase.from('orders').delete().eq('id', order.id);
+        return {
+          success: false,
+          error: `Insufficient stock for ${item.product_name}. Available: ${currentStock}, Requested: ${item.quantity}`,
+        };
+      }
+
+      // Ensure newStock is a valid non-negative integer
+      const validNewStock = Math.max(0, Math.floor(newStock));
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ stock_quantity: validNewStock })
+        .eq('id', item.product_id);
+
+      if (updateError) {
+        // Rollback: delete order and order items
+        await supabase.from('order_items').delete().eq('order_id', order.id);
+        await supabase.from('orders').delete().eq('id', order.id);
+        return {
+          success: false,
+          error: `Failed to update stock: ${updateError.message}`,
+        };
       }
     }
 
