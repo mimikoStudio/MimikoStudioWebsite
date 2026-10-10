@@ -115,7 +115,10 @@ export default function ProductsManager() {
 
     // Show success message
     if (newImages.length > 0) {
+      console.log(`✅ Successfully converted ${newImages.length} images to base64`);
       alert(`✅ Successfully added ${newImages.length} image${newImages.length > 1 ? 's' : ''}!`);
+    } else {
+      console.warn('⚠️ No images were successfully converted');
     }
 
     // Reset input
@@ -188,11 +191,16 @@ export default function ProductsManager() {
 
       // Save images (base64) to database
       if (formData.images.length > 0) {
+        console.log(`📸 Saving ${formData.images.length} images for product ${productId}`);
         try {
           await updateProductImages(productId, formData.images);
+          console.log('✅ Images saved successfully');
         } catch (imageError: any) {
+          console.error('❌ Image upload failed:', imageError);
           alert(`⚠️ Product saved but images failed to upload:\n\n${imageError.message}\n\nYou can edit the product later to add images.`);
         }
+      } else {
+        console.log('ℹ️ No images to save');
       }
 
       setShowForm(false);
@@ -207,6 +215,8 @@ export default function ProductsManager() {
 
   const updateProductImages = async (productId: string, imageUrls: string[]) => {
     try {
+      console.log(`📸 updateProductImages called with ${imageUrls.length} images for product ${productId}`);
+      
       // Step 1: Get old image URLs before deleting
       const { data: oldImages, error: fetchError } = await supabase
         .from('product_images')
@@ -214,7 +224,9 @@ export default function ProductsManager() {
         .eq('product_id', productId);
 
       if (fetchError) {
-        console.error('Failed to fetch old images:', fetchError);
+        console.error('❌ Failed to fetch old images:', fetchError);
+      } else {
+        console.log(`ℹ️ Found ${oldImages?.length || 0} existing images`);
       }
 
       // Step 2: Delete database records
@@ -224,8 +236,10 @@ export default function ProductsManager() {
         .eq('product_id', productId);
 
       if (deleteError) {
+        console.error('❌ Failed to delete old images:', deleteError);
         throw new Error(`Failed to delete old images: ${deleteError.message}`);
       }
+      console.log('✅ Old images deleted');
 
       // Step 3: Safely clean up old storage files (only if not referenced by other products)
       if (oldImages && oldImages.length > 0) {
@@ -253,7 +267,7 @@ export default function ProductsManager() {
               }
             } catch (cleanupError) {
               // Silently fail cleanup - don't block the main operation
-              console.warn('Failed to cleanup old image:', cleanupError);
+              console.warn('⚠️ Failed to cleanup old image:', cleanupError);
             }
           }
         }
@@ -261,19 +275,26 @@ export default function ProductsManager() {
 
       // Step 4: Insert new images (base64 data URLs)
       if (imageUrls.length > 0) {
-        const imageRecords = imageUrls.map((url, index) => ({
-          product_id: productId,
-          image_url: url,
-          alt_text: `Product image ${index + 1}`,
-          display_order: index,
-        }));
+        console.log(`📤 Inserting ${imageUrls.length} new images...`);
+        
+        const imageRecords = imageUrls.map((url, index) => {
+          console.log(`Image ${index + 1}: ${url.substring(0, 50)}... (${url.length} chars)`);
+          return {
+            product_id: productId,
+            image_url: url,
+            alt_text: `Product image ${index + 1}`,
+            display_order: index,
+          };
+        });
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('product_images')
           .insert(imageRecords)
           .select();
 
         if (error) {
+          console.error('❌ Failed to insert images:', error);
+          
           if (error.message.includes('row-level security')) {
             throw new Error('RLS policy is blocking image upload. Please disable RLS on product_images table.');
           }
@@ -284,11 +305,16 @@ export default function ProductsManager() {
           
           throw new Error(`Failed to save images: ${error.message}`);
         }
+
+        console.log(`✅ Successfully inserted ${data?.length || 0} images`);
+      } else {
+        console.log('ℹ️ No new images to insert');
       }
 
       // Step 5: Invalidate cache by triggering a refetch
       refetch();
     } catch (error: any) {
+      console.error('❌ Error in updateProductImages:', error);
       throw error;
     }
   };
