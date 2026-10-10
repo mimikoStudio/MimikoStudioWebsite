@@ -9,11 +9,19 @@ export default function CategoriesManager() {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
+    name_hi: '',
+    name_gu: '',
     slug: '',
     description: '',
+    description_hi: '',
+    description_gu: '',
     image_url: '',
+    icon: '',
     display_order: '0',
     is_active: true,
+    is_featured: false,
+    seo_title: '',
+    seo_description: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,11 +58,19 @@ export default function CategoriesManager() {
     setEditingCategory(category);
     setFormData({
       name: category.name || '',
+      name_hi: category.name_hi || '',
+      name_gu: category.name_gu || '',
       slug: category.slug || '',
       description: category.description || '',
+      description_hi: category.description_hi || '',
+      description_gu: category.description_gu || '',
       image_url: category.image_url || '',
+      icon: category.icon || '',
       display_order: category.display_order?.toString() || '0',
       is_active: category.is_active ?? true,
+      is_featured: category.is_featured ?? false,
+      seo_title: category.seo_title || '',
+      seo_description: category.seo_description || '',
     });
     setShowForm(true);
   };
@@ -74,11 +90,19 @@ export default function CategoriesManager() {
   const resetForm = () => {
     setFormData({
       name: '',
+      name_hi: '',
+      name_gu: '',
       slug: '',
       description: '',
+      description_hi: '',
+      description_gu: '',
       image_url: '',
+      icon: '',
       display_order: '0',
       is_active: true,
+      is_featured: false,
+      seo_title: '',
+      seo_description: '',
     });
   };
 
@@ -152,7 +176,7 @@ export default function CategoriesManager() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                  Category Name *
+                  Category Name (English) *
                 </label>
                 <input
                   type="text"
@@ -160,6 +184,32 @@ export default function CategoriesManager() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="input-luxury"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Category Name (Hindi)
+                </label>
+                <input
+                  type="text"
+                  value={formData.name_hi}
+                  onChange={(e) => setFormData({ ...formData, name_hi: e.target.value })}
+                  className="input-luxury"
+                  placeholder="श्रेणी का नाम"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Category Name (Gujarati)
+                </label>
+                <input
+                  type="text"
+                  value={formData.name_gu}
+                  onChange={(e) => setFormData({ ...formData, name_gu: e.target.value })}
+                  className="input-luxury"
+                  placeholder="શ્રેણીનું નામ"
                 />
               </div>
 
@@ -178,13 +228,39 @@ export default function CategoriesManager() {
 
               <div>
                 <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                  Description
+                  Description (English)
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="textarea-luxury"
                   rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Description (Hindi)
+                </label>
+                <textarea
+                  value={formData.description_hi}
+                  onChange={(e) => setFormData({ ...formData, description_hi: e.target.value })}
+                  className="textarea-luxury"
+                  rows={3}
+                  placeholder="विवरण..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Description (Gujarati)
+                </label>
+                <textarea
+                  value={formData.description_gu}
+                  onChange={(e) => setFormData({ ...formData, description_gu: e.target.value })}
+                  className="textarea-luxury"
+                  rows={3}
+                  placeholder="વર્ણન..."
                 />
               </div>
 
@@ -203,6 +279,45 @@ export default function CategoriesManager() {
 
               <div>
                 <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Icon (Emoji)
+                </label>
+                <input
+                  type="text"
+                  value={formData.icon}
+                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                  className="input-luxury"
+                  placeholder="🎨"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  SEO Title
+                </label>
+                <input
+                  type="text"
+                  value={formData.seo_title}
+                  onChange={(e) => setFormData({ ...formData, seo_title: e.target.value })}
+                  className="input-luxury"
+                  placeholder="SEO title for search engines"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  SEO Description
+                </label>
+                <textarea
+                  value={formData.seo_description}
+                  onChange={(e) => setFormData({ ...formData, seo_description: e.target.value })}
+                  className="textarea-luxury"
+                  rows={2}
+                  placeholder="SEO description for search engines"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
                   Display Order
                 </label>
                 <input
@@ -213,15 +328,26 @@ export default function CategoriesManager() {
                 />
               </div>
 
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="accent-gold"
-                />
-                <span className="text-sm text-coffee/70">Active</span>
-              </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="accent-gold"
+                  />
+                  <span className="text-sm text-coffee/70">Active</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_featured}
+                    onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                    className="accent-gold"
+                  />
+                  <span className="text-sm text-coffee/70">Featured Category</span>
+                </label>
+              </div>
 
               <div className="flex gap-4 pt-4 border-t border-beige/20">
                 <button type="submit" className="btn-primary flex-1">

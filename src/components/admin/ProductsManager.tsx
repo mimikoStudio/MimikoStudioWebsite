@@ -13,8 +13,12 @@ export default function ProductsManager() {
   const [viewingImages, setViewingImages] = useState<any>(null); // For image gallery modal
   const [formData, setFormData] = useState({
     name: '',
+    name_hi: '',
+    name_gu: '',
     slug: '',
     description: '',
+    description_hi: '',
+    description_gu: '',
     price: '',
     sale_price: '',
     stock_quantity: '0',
@@ -22,10 +26,16 @@ export default function ProductsManager() {
     material: '',
     sizes: '',
     colors: '',
+    sku: '',
+    fabric_type: '',
+    dimensions: '',
+    pattern: '',
     customization_available: false,
     is_featured: false,
     is_new_arrival: false,
     is_published: true, // Default to published so products show on website
+    seo_title: '',
+    seo_description: '',
     images: [] as string[], // Now stores base64 data URLs
   });
 
@@ -144,8 +154,12 @@ export default function ProductsManager() {
     
     const productData = {
       name: formData.name,
+      name_hi: formData.name_hi || null,
+      name_gu: formData.name_gu || null,
       slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
       description: formData.description,
+      description_hi: formData.description_hi || null,
+      description_gu: formData.description_gu || null,
       price: parseFloat(formData.price),
       sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
       stock_quantity: stockQty,
@@ -153,10 +167,16 @@ export default function ProductsManager() {
       material: formData.material,
       sizes: formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
       colors: formData.colors.split(',').map(c => c.trim()).filter(Boolean),
+      sku: formData.sku || null,
+      fabric_type: formData.fabric_type || null,
+      dimensions: formData.dimensions || null,
+      pattern: formData.pattern || null,
       customization_available: formData.customization_available,
       is_featured: formData.is_featured,
       is_new_arrival: formData.is_new_arrival,
       is_published: formData.is_published,
+      seo_title: formData.seo_title || null,
+      seo_description: formData.seo_description || null,
     };
 
     try {
@@ -323,8 +343,12 @@ export default function ProductsManager() {
     setEditingProduct(product);
     setFormData({
       name: product.name || '',
+      name_hi: product.name_hi || '',
+      name_gu: product.name_gu || '',
       slug: product.slug || '',
       description: product.description || '',
+      description_hi: product.description_hi || '',
+      description_gu: product.description_gu || '',
       price: product.price?.toString() || '',
       sale_price: product.sale_price?.toString() || '',
       stock_quantity: product.stock_quantity?.toString() || '0',
@@ -332,10 +356,16 @@ export default function ProductsManager() {
       material: product.material || '',
       sizes: product.sizes?.join(', ') || '',
       colors: product.colors?.join(', ') || '',
+      sku: product.sku || '',
+      fabric_type: product.fabric_type || '',
+      dimensions: product.dimensions || '',
+      pattern: product.pattern || '',
       customization_available: product.customization_available || false,
       is_featured: product.is_featured || false,
       is_new_arrival: product.is_new_arrival || false,
       is_published: product.is_published || false,
+      seo_title: product.seo_title || '',
+      seo_description: product.seo_description || '',
       images: [],
     });
     setShowForm(true);
@@ -357,8 +387,12 @@ export default function ProductsManager() {
   const resetForm = () => {
     setFormData({
       name: '',
+      name_hi: '',
+      name_gu: '',
       slug: '',
       description: '',
+      description_hi: '',
+      description_gu: '',
       price: '',
       sale_price: '',
       stock_quantity: '0',
@@ -366,10 +400,16 @@ export default function ProductsManager() {
       material: '',
       sizes: '',
       colors: '',
+      sku: '',
+      fabric_type: '',
+      dimensions: '',
+      pattern: '',
       customization_available: false,
       is_featured: false,
       is_new_arrival: false,
       is_published: true, // Default to published
+      seo_title: '',
+      seo_description: '',
       images: [],
     });
   };
@@ -676,16 +716,69 @@ export default function ProductsManager() {
                 </div>
               </div>
 
+              {/* Multilingual Names */}
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Product Name (Hindi)
+                </label>
+                <input
+                  type="text"
+                  value={formData.name_hi}
+                  onChange={(e) => setFormData({ ...formData, name_hi: e.target.value })}
+                  className="input-luxury"
+                  placeholder="उत्पाद का नाम"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Product Name (Gujarati)
+                </label>
+                <input
+                  type="text"
+                  value={formData.name_gu}
+                  onChange={(e) => setFormData({ ...formData, name_gu: e.target.value })}
+                  className="input-luxury"
+                  placeholder="ઉત્પાદનું નામ"
+                />
+              </div>
+
               {/* Description */}
               <div>
                 <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
-                  Description
+                  Description (English)
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="textarea-luxury"
                   rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Description (Hindi)
+                </label>
+                <textarea
+                  value={formData.description_hi}
+                  onChange={(e) => setFormData({ ...formData, description_hi: e.target.value })}
+                  className="textarea-luxury"
+                  rows={3}
+                  placeholder="विवरण..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                  Description (Gujarati)
+                </label>
+                <textarea
+                  value={formData.description_gu}
+                  onChange={(e) => setFormData({ ...formData, description_gu: e.target.value })}
+                  className="textarea-luxury"
+                  rows={3}
+                  placeholder="વર્ણન..."
                 />
               </div>
 
@@ -787,6 +880,91 @@ export default function ProductsManager() {
                       onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
                       className="input-luxury"
                       placeholder="Red, Blue, Green"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      SKU
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      className="input-luxury"
+                      placeholder="Unique product identifier"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Fabric Type
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.fabric_type}
+                      onChange={(e) => setFormData({ ...formData, fabric_type: e.target.value })}
+                      className="input-luxury"
+                      placeholder="Cotton, Silk, etc."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Dimensions
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.dimensions}
+                      onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                      className="input-luxury"
+                      placeholder="L x W x H"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      Pattern
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.pattern}
+                      onChange={(e) => setFormData({ ...formData, pattern: e.target.value })}
+                      className="input-luxury"
+                      placeholder="Floral, Geometric, etc."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SEO Settings */}
+              <div>
+                <h4 className="font-label text-sm tracking-wider uppercase text-gold mb-4">SEO Settings</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      SEO Title
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.seo_title}
+                      onChange={(e) => setFormData({ ...formData, seo_title: e.target.value })}
+                      className="input-luxury"
+                      placeholder="SEO title for search engines"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-label tracking-wider uppercase text-coffee/70 mb-2">
+                      SEO Description
+                    </label>
+                    <textarea
+                      value={formData.seo_description}
+                      onChange={(e) => setFormData({ ...formData, seo_description: e.target.value })}
+                      className="textarea-luxury"
+                      rows={2}
+                      placeholder="SEO description for search engines"
                     />
                   </div>
                 </div>
