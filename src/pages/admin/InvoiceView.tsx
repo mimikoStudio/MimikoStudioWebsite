@@ -1,27 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Printer, Download, X } from 'lucide-react';
-import { getInvoice, Invoice } from '../../lib/invoiceService';
+import { getInvoiceById, downloadInvoicePDF, printInvoicePDF } from '../../lib/invoiceService';
+import type { Invoice } from '../../types/invoice';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { invoiceTranslations } from '../../types/invoice';
 import { getImageUrl } from '../../lib/imageUtils';
 
 export default function InvoiceView() {
-  const { orderId } = useParams<{ orderId: string }>();
+  const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (orderId) {
+    if (invoiceId) {
       loadInvoice();
     }
-  }, [orderId]);
+  }, [invoiceId]);
 
   const loadInvoice = async () => {
     try {
       setLoading(true);
-      const inv = await getInvoice(orderId!);
+      const inv = await getInvoiceById(invoiceId!);
       setInvoice(inv);
     } catch (error) {
       console.error('Error loading invoice:', error);
@@ -31,13 +33,15 @@ export default function InvoiceView() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (invoice) {
+      printInvoicePDF(invoice);
+    }
   };
 
   const handleDownload = () => {
-    // For now, use print to PDF
-    // In production, you could use a library like jsPDF
-    window.print();
+    if (invoice) {
+      downloadInvoicePDF(invoice);
+    }
   };
 
   if (loading) {
@@ -61,21 +65,8 @@ export default function InvoiceView() {
     );
   }
 
-  const order = invoice.order;
-  if (!order) {
-    return (
-      <div className="min-h-screen bg-ivory flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-chocolate mb-4">Order details not found</p>
-          <button onClick={() => navigate(-1)} className="btn-primary">
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const logoUrl = getImageUrl(settings.logo_url);
+  const t = invoiceTranslations[invoice.language];
+  const logoUrl = settings.logo_url ? getImageUrl(settings.logo_url) : null;
 
   return (
     <div className="min-h-screen bg-ivory">
@@ -142,16 +133,16 @@ export default function InvoiceView() {
               </div>
               <div className="text-right">
                 <h2 className="text-3xl font-bold mb-2" style={{ color: settings.primary_color }}>
-                  INVOICE
+                  {t.invoice}
                 </h2>
                 <p className="text-sm" style={{ color: settings.text_color }}>
-                  <strong>Invoice #:</strong> {invoice.invoice_number}
+                  <strong>{t.invoice_number}:</strong> {invoice.invoice_number}
                 </p>
                 <p className="text-sm" style={{ color: settings.text_color }}>
-                  <strong>Date:</strong> {new Date(invoice.invoice_date).toLocaleDateString()}
+                  <strong>{t.date}:</strong> {new Date(invoice.issued_date).toLocaleDateString()}
                 </p>
                 <p className="text-sm" style={{ color: settings.text_color }}>
-                  <strong>Order #:</strong> {order.order_number}
+                  <strong>{t.due_date}:</strong> {new Date(invoice.due_date).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -161,28 +152,29 @@ export default function InvoiceView() {
           <div className="p-8 grid grid-cols-2 gap-8">
             <div>
               <h3 className="text-sm font-bold uppercase mb-3" style={{ color: settings.primary_color }}>
-                From
+                {t.bill_to}
               </h3>
               <div className="text-sm space-y-1" style={{ color: settings.text_color }}>
-                <p className="font-bold">{settings.site_name}</p>
-                {settings.address && <p>{settings.address}</p>}
-                {settings.phone && <p>Phone: {settings.phone}</p>}
-                {settings.email && <p>Email: {settings.email}</p>}
-                {settings.whatsapp && <p>WhatsApp: {settings.whatsapp}</p>}
+                <p className="font-bold">{invoice.customer_name}</p>
+                {invoice.customer_phone && <p>Phone: {invoice.customer_phone}</p>}
+                {invoice.customer_email && <p>Email: {invoice.customer_email}</p>}
+                {invoice.billing_address && (
+                  <div className="mt-2">
+                    <p className="font-semibold">{t.bill_to}:</p>
+                    <p>{invoice.billing_address}</p>
+                  </div>
+                )}
               </div>
             </div>
             <div>
               <h3 className="text-sm font-bold uppercase mb-3" style={{ color: settings.primary_color }}>
-                Bill To
+                {t.ship_to}
               </h3>
               <div className="text-sm space-y-1" style={{ color: settings.text_color }}>
-                <p className="font-bold">{order.customer_name}</p>
-                {order.phone && <p>Phone: {order.phone}</p>}
-                {order.email && <p>Email: {order.email}</p>}
-                {order.shipping_address && (
+                <p className="font-bold">{invoice.customer_name}</p>
+                {invoice.shipping_address && (
                   <div>
-                    <p className="font-semibold mt-2">Shipping Address:</p>
-                    <p>{order.shipping_address}</p>
+                    <p>{invoice.shipping_address}</p>
                   </div>
                 )}
               </div>
@@ -198,49 +190,54 @@ export default function InvoiceView() {
                     #
                   </th>
                   <th className="text-left p-3 font-bold" style={{ color: settings.heading_color }}>
-                    Product
+                    {t.item}
                   </th>
                   <th className="text-center p-3 font-bold" style={{ color: settings.heading_color }}>
-                    Qty
+                    {t.quantity}
                   </th>
                   <th className="text-right p-3 font-bold" style={{ color: settings.heading_color }}>
-                    Price
+                    {t.price}
                   </th>
                   <th className="text-right p-3 font-bold" style={{ color: settings.heading_color }}>
-                    Total
+                    {t.total}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {(order as any).order_items?.map((item: any, index: number) => (
-                  <tr key={item.id} className="border-b" style={{ borderColor: settings.border_color }}>
-                    <td className="p-3" style={{ color: settings.text_color }}>
-                      {index + 1}
-                    </td>
-                    <td className="p-3" style={{ color: settings.text_color }}>
-                      <div>
-                        <p className="font-medium">{item.product_name}</p>
-                        {item.selected_options && Object.keys(item.selected_options).length > 0 && (
-                          <p className="text-xs mt-1" style={{ color: settings.muted_text_color }}>
-                            {Object.entries(item.selected_options)
-                              .filter(([_, value]) => value)
-                              .map(([key, value]) => `${key}: ${value}`)
-                              .join(', ')}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-center" style={{ color: settings.text_color }}>
-                      {item.quantity}
-                    </td>
-                    <td className="p-3 text-right" style={{ color: settings.text_color }}>
-                      ₹{item.unit_price.toLocaleString()}
-                    </td>
-                    <td className="p-3 text-right font-medium" style={{ color: settings.text_color }}>
-                      ₹{(item.unit_price * item.quantity).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+                {invoice.items.map((item, index) => {
+                  const productName = invoice.language === 'hi' && item.product_name_hi
+                    ? item.product_name_hi
+                    : invoice.language === 'gu' && item.product_name_gu
+                    ? item.product_name_gu
+                    : item.product_name;
+
+                  return (
+                    <tr key={item.id} className="border-b" style={{ borderColor: settings.border_color }}>
+                      <td className="p-3" style={{ color: settings.text_color }}>
+                        {index + 1}
+                      </td>
+                      <td className="p-3" style={{ color: settings.text_color }}>
+                        <div>
+                          <p className="font-medium">{productName}</p>
+                          {item.sku && (
+                            <p className="text-xs mt-1" style={{ color: settings.muted_text_color }}>
+                              SKU: {item.sku}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-center" style={{ color: settings.text_color }}>
+                        {item.quantity}
+                      </td>
+                      <td className="p-3 text-right" style={{ color: settings.text_color }}>
+                        ₹{item.unit_price.toFixed(2)}
+                      </td>
+                      <td className="p-3 text-right font-medium" style={{ color: settings.text_color }}>
+                        ₹{item.total_price.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -251,46 +248,34 @@ export default function InvoiceView() {
               <div className="w-64">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between" style={{ color: settings.text_color }}>
-                    <span>Subtotal:</span>
-                    <span>₹{invoice.subtotal.toLocaleString()}</span>
+                    <span>{t.subtotal}:</span>
+                    <span>₹{invoice.subtotal.toFixed(2)}</span>
                   </div>
-                  {invoice.discount_amount > 0 && (
-                    <div className="flex justify-between" style={{ color: settings.text_color }}>
-                      <span>Discount:</span>
-                      <span>-₹{invoice.discount_amount.toLocaleString()}</span>
-                    </div>
-                  )}
                   {invoice.tax_amount > 0 && (
                     <div className="flex justify-between" style={{ color: settings.text_color }}>
-                      <span>Tax:</span>
-                      <span>₹{invoice.tax_amount.toLocaleString()}</span>
+                      <span>{t.tax}:</span>
+                      <span>₹{invoice.tax_amount.toFixed(2)}</span>
                     </div>
                   )}
-                  {invoice.shipping_amount > 0 && (
+                  {invoice.discount_amount > 0 && (
                     <div className="flex justify-between" style={{ color: settings.text_color }}>
-                      <span>Shipping:</span>
-                      <span>₹{invoice.shipping_amount.toLocaleString()}</span>
+                      <span>{t.discount}:</span>
+                      <span>-₹{invoice.discount_amount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {invoice.shipping_charges > 0 && (
+                    <div className="flex justify-between" style={{ color: settings.text_color }}>
+                      <span>{t.shipping}:</span>
+                      <span>₹{invoice.shipping_charges.toFixed(2)}</span>
                     </div>
                   )}
                   <div
                     className="flex justify-between font-bold text-lg pt-2 border-t-2"
                     style={{ borderColor: settings.primary_color, color: settings.heading_color }}
                   >
-                    <span>Total:</span>
-                    <span>₹{invoice.total_amount.toLocaleString()}</span>
+                    <span>{t.grand_total}:</span>
+                    <span>₹{invoice.total_amount.toFixed(2)}</span>
                   </div>
-                  {invoice.amount_paid > 0 && (
-                    <div className="flex justify-between" style={{ color: settings.text_color }}>
-                      <span>Amount Paid:</span>
-                      <span>₹{invoice.amount_paid.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {invoice.balance_due > 0 && (
-                    <div className="flex justify-between font-bold" style={{ color: settings.primary_color }}>
-                      <span>Balance Due:</span>
-                      <span>₹{invoice.balance_due.toLocaleString()}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -302,20 +287,26 @@ export default function InvoiceView() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm font-bold" style={{ color: settings.heading_color }}>
-                    Payment Status
+                    {t.payment_status}
                   </p>
                   <p className="text-xs mt-1" style={{ color: settings.muted_text_color }}>
-                    {order.payment_status === 'paid' ? 'Paid' : 
-                     order.payment_status === 'pending' ? 'Pending' :
-                     order.payment_status === 'failed' ? 'Failed' : 'Refunded'}
+                    {t[invoice.payment_status as keyof typeof t] || invoice.payment_status}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-bold" style={{ color: settings.heading_color }}>
-                    Order Status
+                    {t.payment_method}
                   </p>
                   <p className="text-xs mt-1" style={{ color: settings.muted_text_color }}>
-                    {order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1)}
+                    {invoice.payment_method}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: settings.heading_color }}>
+                    Invoice Status
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: settings.muted_text_color }}>
+                    {t[`status_${invoice.invoice_status}` as keyof typeof t] || invoice.invoice_status}
                   </p>
                 </div>
               </div>
@@ -327,7 +318,7 @@ export default function InvoiceView() {
             {invoice.notes && (
               <div className="mb-4">
                 <p className="text-sm font-bold mb-2" style={{ color: settings.heading_color }}>
-                  Notes
+                  {t.notes}
                 </p>
                 <p className="text-sm" style={{ color: settings.text_color }}>
                   {invoice.notes}
@@ -337,7 +328,7 @@ export default function InvoiceView() {
             {invoice.terms && (
               <div>
                 <p className="text-sm font-bold mb-2" style={{ color: settings.heading_color }}>
-                  Terms & Conditions
+                  {t.terms_and_conditions}
                 </p>
                 <p className="text-xs" style={{ color: settings.muted_text_color }}>
                   {invoice.terms}
@@ -351,8 +342,8 @@ export default function InvoiceView() {
             className="p-8 text-center text-sm"
             style={{ backgroundColor: settings.footer_background_color, color: settings.background_color }}
           >
-            <p className="font-bold mb-2">Thank you for your business!</p>
-            <p className="text-xs">{settings.copyright_text}</p>
+            <p className="font-bold mb-2">{t.thank_you}</p>
+            <p className="text-xs">{settings.copyright_text || `© ${new Date().getFullYear()} ${settings.site_name}. All rights reserved.`}</p>
           </div>
         </div>
       </div>

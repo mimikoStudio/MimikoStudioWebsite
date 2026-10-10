@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, MessageSquare, Calendar, ShoppingCart,
-  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink, TrendingUp, Image as ImageIcon, Palette
+  Bell, LogOut, Eye, Settings, FolderTree, Database, Copy, CheckCircle, ExternalLink, TrendingUp, Image as ImageIcon, Palette, FileText
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useDashboardStats, useInquiries, useAppointments, useProducts } from '../../hooks/useData';
@@ -21,9 +21,10 @@ import CollectionsManager from '../../components/admin/CollectionsManager';
 import WhatsAppSettingsManager from '../../components/admin/WhatsAppSettingsManager';
 import DynamicContentManager from '../../components/admin/DynamicContentManager';
 import FestivalThemeManager from '../../components/admin/FestivalThemeManager';
+import InvoiceManager from '../../components/admin/InvoiceManager';
 import AutoSetup from '../../components/admin/AutoSetup';
 
-type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'dynamic-content' | 'festival-themes' | 'whatsapp' | 'settings';
+type Tab = 'overview' | 'products' | 'categories' | 'inquiries' | 'appointments' | 'orders' | 'invoices' | 'reports' | 'hero-banners' | 'gallery' | 'collections' | 'dynamic-content' | 'festival-themes' | 'whatsapp' | 'settings';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -75,6 +76,7 @@ export default function AdminDashboard() {
     { id: 'inquiries' as Tab, label: '💌 Inquiries', icon: <MessageSquare size={16} /> },
     { id: 'appointments' as Tab, label: '📅 Appointments', icon: <Calendar size={16} /> },
     { id: 'orders' as Tab, label: '📦 Orders', icon: <ShoppingCart size={16} /> },
+    { id: 'invoices' as Tab, label: '📄 Invoices', icon: <FileText size={16} /> },
     { id: 'reports' as Tab, label: '📈 Reports', icon: <TrendingUp size={16} /> },
     { id: 'whatsapp' as Tab, label: '💬 WhatsApp', icon: <MessageSquare size={16} /> },
     { id: 'settings' as Tab, label: '⚙️ Settings', icon: <Settings size={16} /> },
@@ -140,6 +142,7 @@ export default function AdminDashboard() {
         {activeTab === 'inquiries' && <InquiriesManager />}
         {activeTab === 'appointments' && <AppointmentsManager />}
         {activeTab === 'orders' && <OrdersManager />}
+        {activeTab === 'invoices' && <InvoiceManager />}
         {activeTab === 'reports' && <ReportsDashboard />}
         {activeTab === 'whatsapp' && <WhatsAppSettingsManager />}
         {activeTab === 'settings' && <SiteSettingsManager />}

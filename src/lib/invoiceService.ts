@@ -1,321 +1,216 @@
-import { supabase } from '../lib/supabase';
-import { Order, OrderItem } from '../types';
-import { SiteSettings } from '../types/siteSettings';
+import { supabase } from './supabase';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import type { Invoice, InvoiceItem, InvoiceSettings, InvoiceTranslation } from '../types/invoice';
+import { invoiceTranslations } from '../types/invoice';
 
-export interface Invoice {
-  id: string;
-  order_id: string;
-  invoice_number: string;
-  invoice_date: string;
-  due_date: string | null;
-  subtotal: number;
-  discount_amount: number;
-  tax_amount: number;
-  shipping_amount: number;
-  total_amount: number;
-  amount_paid: number;
-  balance_due: number;
-  notes: string | null;
-  terms: string | null;
-  created_at: string;
-  updated_at: string;
-  order?: Order;
-}
+// ============================================
+// INVOICE SETTINGS
+// ============================================
 
-export interface InvoiceSettings {
-  invoice_prefix: string;
-  invoice_starting_number: number;
-  invoice_footer: string;
-  invoice_terms: string;
-  invoice_thank_you: string;
-  show_gst: boolean;
-  show_tax: boolean;
-  show_discount: boolean;
-  show_shipping: boolean;
-  invoice_accent_color: string;
-  gst_number: string;
-  pan_number: string;
-  registration_number: string;
-}
-
-export const defaultInvoiceSettings: InvoiceSettings = {
-  invoice_prefix: 'INV',
-  invoice_starting_number: 1,
-  invoice_footer: 'Thank you for your business!',
-  invoice_terms: 'Payment is due within 30 days of invoice date.',
-  invoice_thank_you: 'Thank you for choosing our jewellery collection.',
-  show_gst: false,
-  show_tax: false,
-  show_discount: true,
-  show_shipping: true,
-  invoice_accent_color: '#D5AA64',
-  gst_number: '',
-  pan_number: '',
-  registration_number: '',
-};
-
-/**
- * Generate unique invoice number
- */
-export async function generateInvoiceNumber(): Promise<string> {
+export async function getInvoiceSettings(): Promise<InvoiceSettings | null> {
   try {
-    // Get invoice settings
-    const { data: settings } = await supabase
-      .from('site_settings')
-      .select('setting_value')
-      .eq('setting_key', 'invoice_settings')
+    const { data, error } = await supabase
+      .from('invoice_settings')
+      .select('*')
       .single();
 
-    let invoiceSettings = defaultInvoiceSettings;
-    if (settings) {
-      try {
-        invoiceSettings = JSON.parse(settings.setting_value);
-      } catch (e) {
-        console.error('Failed to parse invoice settings:', e);
-      }
-    }
-
-    // Get the latest invoice number
-    const { data: latestInvoice, error } = await supabase
-      .from('invoices')
-      .select('invoice_number')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    let nextNumber = invoiceSettings.invoice_starting_number;
-
-    if (latestInvoice && !error) {
-      // Extract number from invoice number (e.g., INV-2026-000001 -> 1)
-      const parts = latestInvoice.invoice_number.split('-');
-      const lastPart = parts[parts.length - 1];
-      const currentNumber = parseInt(lastPart, 10);
-      if (!isNaN(currentNumber)) {
-        nextNumber = currentNumber + 1;
-      }
-    }
-
-    // Format: INV-2026-000001
-    const year = new Date().getFullYear();
-    const paddedNumber = String(nextNumber).padStart(6, '0');
-    const invoiceNumber = `${invoiceSettings.invoice_prefix}-${year}-${paddedNumber}`;
-
-    return invoiceNumber;
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error('Error generating invoice number:', error);
-    // Fallback to timestamp-based number
-    const timestamp = Date.now();
-    return `INV-${timestamp}`;
+    console.error('Error fetching invoice settings:', error);
+    return null;
   }
 }
 
-/**
- * Create invoice for an order
- */
-export async function createInvoice(orderId: string): Promise<{ success: boolean; invoice?: Invoice; error?: string }> {
+export async function updateInvoiceSettings(settings: Partial<InvoiceSettings>): Promise<{ success: boolean; error?: string }> {
   try {
-    // Check if invoice already exists for this order
-    const { data: existingInvoice, error: checkError } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('order_id', orderId)
-      .single();
+    const { error } = await supabase
+      .from('invoice_settings')
+      .update(settings)
+      .eq('id', (await getInvoiceSettings())?.id);
 
-    if (existingInvoice && !checkError) {
-      return {
-        success: false,
-        error: 'Invoice already exists for this order',
-      };
-    }
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating invoice settings:', error);
+    return { success: false, error: error.message };
+  }
+}
 
-    // Get order details
+// ============================================
+// INVOICE GENERATION
+// ============================================
+
+export async function generateInvoiceNumber(): Promise<string> {
+  const settings = await getInvoiceSettings();
+  if (!settings) {
+    throw new Error('Invoice settings not found');
+  }
+
+  const invoiceNumber = `${settings.invoice_prefix}${String(settings.next_invoice_number).padStart(6, '0')}`;
+
+  // Increment the next invoice number
+  await supabase
+    .from('invoice_settings')
+    .update({ next_invoice_number: settings.next_invoice_number + 1 })
+    .eq('id', settings.id);
+
+  return invoiceNumber;
+}
+
+export async function createInvoiceFromOrder(orderId: string, language: 'en' | 'hi' | 'gu' = 'en'): Promise<{ success: boolean; invoice?: Invoice; error?: string }> {
+  try {
+    // Fetch order with items
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*, order_items(*)')
+      .select('*, order_items(*, products(name, name_hi, name_gu, sku, images:product_images(image_url)))')
       .eq('id', orderId)
       .single();
 
     if (orderError || !order) {
-      return {
-        success: false,
-        error: 'Order not found',
-      };
+      throw new Error('Order not found');
     }
 
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
-    // Get invoice settings
-    const { data: settings } = await supabase
-      .from('site_settings')
-      .select('setting_value')
-      .eq('setting_key', 'invoice_settings')
-      .single();
+    // Prepare invoice items
+    const items: InvoiceItem[] = order.order_items.map((item: any) => ({
+      id: crypto.randomUUID(),
+      product_id: item.product_id,
+      product_name: item.products?.name || 'Product',
+      product_name_hi: item.products?.name_hi,
+      product_name_gu: item.products?.name_gu,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total_price: item.quantity * item.unit_price,
+      sku: item.products?.sku,
+      image_url: item.products?.images?.[0]?.image_url,
+    }));
 
-    let invoiceSettings = defaultInvoiceSettings;
-    if (settings) {
-      try {
-        invoiceSettings = JSON.parse(settings.setting_value);
-      } catch (e) {
-        console.error('Failed to parse invoice settings:', e);
-      }
-    }
-
-    // Calculate amounts
-    const subtotal = order.subtotal || 0;
+    // Calculate totals
+    const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
+    const settings = await getInvoiceSettings();
+    const taxAmount = subtotal * ((settings?.default_tax_rate || 0) / 100);
     const discountAmount = order.discount_amount || 0;
-    const taxAmount = 0; // Tax not implemented in current system
-    const shippingAmount = order.shipping_fee || 0;
-    const totalAmount = order.total_amount || (subtotal - discountAmount + taxAmount + shippingAmount);
-    const amountPaid = order.payment_status === 'paid' ? totalAmount : 0;
-    const balanceDue = totalAmount - amountPaid;
+    const shippingCharges = order.shipping_fee || settings?.default_shipping_charges || 0;
+    const totalAmount = subtotal + taxAmount - discountAmount + shippingCharges;
 
     // Create invoice
-    const { data: invoice, error: invoiceError } = await supabase
+    const invoice: Partial<Invoice> = {
+      invoice_number: invoiceNumber,
+      order_id: orderId,
+      customer_id: order.customer_id,
+      customer_name: order.customer_name,
+      customer_email: order.email,
+      customer_phone: order.phone,
+      billing_address: order.billing_address || order.shipping_address,
+      shipping_address: order.shipping_address,
+      items,
+      subtotal,
+      tax_amount: taxAmount,
+      discount_amount: discountAmount,
+      shipping_charges: shippingCharges,
+      total_amount: totalAmount,
+      payment_method: order.payment_method || 'COD',
+      payment_status: order.payment_status || 'pending',
+      invoice_status: 'issued',
+      notes: settings?.default_notes || '',
+      terms: settings?.default_terms || '',
+      language,
+      issued_date: new Date().toISOString(),
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+    };
+
+    const { data, error } = await supabase
       .from('invoices')
-      .insert([{
-        order_id: orderId,
-        invoice_number: invoiceNumber,
-        invoice_date: new Date().toISOString(),
-        due_date: null,
-        subtotal: subtotal,
-        discount_amount: discountAmount,
-        tax_amount: taxAmount,
-        shipping_amount: shippingAmount,
-        total_amount: totalAmount,
-        amount_paid: amountPaid,
-        balance_due: balanceDue,
-        notes: invoiceSettings.invoice_footer,
-        terms: invoiceSettings.invoice_terms,
-      }])
+      .insert([invoice])
       .select()
       .single();
 
-    if (invoiceError) {
-      return {
-        success: false,
-        error: invoiceError.message,
-      };
-    }
+    if (error) throw error;
 
-    // Update order with invoice reference
-    await supabase
-      .from('orders')
-      .update({ invoice_number: invoiceNumber })
-      .eq('id', orderId);
-
-    return {
-      success: true,
-      invoice: invoice as Invoice,
-    };
+    return { success: true, invoice: data };
   } catch (error: any) {
     console.error('Error creating invoice:', error);
-    return {
-      success: false,
-      error: error.message || 'Failed to create invoice',
-    };
+    return { success: false, error: error.message };
   }
 }
 
-/**
- * Get invoice by ID
- */
-export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
+// ============================================
+// INVOICE MANAGEMENT
+// ============================================
+
+export async function getInvoices(filters?: {
+  customer_id?: string;
+  invoice_status?: string;
+  payment_status?: string;
+  date_from?: string;
+  date_to?: string;
+}): Promise<Invoice[]> {
   try {
-    const { data: invoice, error } = await supabase
+    let query = supabase
       .from('invoices')
-      .select('*, order:orders(*, order_items(*))')
-      .eq('id', invoiceId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching invoice:', error);
-      return null;
-    }
-
-    return invoice as Invoice;
-  } catch (error) {
-    console.error('Error fetching invoice:', error);
-    return null;
-  }
-}
-
-/**
- * Get invoice by order ID
- */
-export async function getInvoiceByOrderId(orderId: string): Promise<Invoice | null> {
-  try {
-    const { data: invoice, error } = await supabase
-      .from('invoices')
-      .select('*, order:orders(*, order_items(*))')
-      .eq('order_id', orderId)
-      .single();
-
-    if (error) {
-      return null;
-    }
-
-    return invoice as Invoice;
-  } catch (error) {
-    console.error('Error fetching invoice:', error);
-    return null;
-  }
-}
-
-/**
- * Get all invoices
- */
-export async function getAllInvoices(): Promise<Invoice[]> {
-  try {
-    const { data: invoices, error } = await supabase
-      .from('invoices')
-      .select('*, order:orders(*, order_items(*))')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching invoices:', error);
-      return [];
+    if (filters?.customer_id) {
+      query = query.eq('customer_id', filters.customer_id);
+    }
+    if (filters?.invoice_status) {
+      query = query.eq('invoice_status', filters.invoice_status);
+    }
+    if (filters?.payment_status) {
+      query = query.eq('payment_status', filters.payment_status);
+    }
+    if (filters?.date_from) {
+      query = query.gte('issued_date', filters.date_from);
+    }
+    if (filters?.date_to) {
+      query = query.lte('issued_date', filters.date_to);
     }
 
-    return invoices as Invoice[];
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return [];
   }
 }
 
-/**
- * Update invoice
- */
-export async function updateInvoice(
-  invoiceId: string,
-  updates: Partial<Invoice>
-): Promise<{ success: boolean; error?: string }> {
+export async function getInvoiceById(invoiceId: string): Promise<Invoice | null> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('invoices')
-      .update(updates)
-      .eq('id', invoiceId);
+      .select('*')
+      .eq('id', invoiceId)
+      .single();
 
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to update invoice',
-    };
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching invoice:', error);
+    return null;
   }
 }
 
-/**
- * Delete invoice
- */
+export async function updateInvoiceStatus(invoiceId: string, status: Invoice['invoice_status']): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('invoices')
+      .update({ invoice_status: status, updated_at: new Date().toISOString() })
+      .eq('id', invoiceId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating invoice status:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function deleteInvoice(invoiceId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
@@ -323,72 +218,274 @@ export async function deleteInvoice(invoiceId: string): Promise<{ success: boole
       .delete()
       .eq('id', invoiceId);
 
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
+    if (error) throw error;
     return { success: true };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to delete invoice',
-    };
+    console.error('Error deleting invoice:', error);
+    return { success: false, error: error.message };
   }
 }
 
-/**
- * Save invoice settings
- */
-export async function saveInvoiceSettings(settings: InvoiceSettings): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { error } = await supabase
-      .from('site_settings')
-      .upsert({
-        setting_key: 'invoice_settings',
-        setting_value: JSON.stringify(settings),
-      }, { onConflict: 'setting_key' });
+// ============================================
+// PDF GENERATION
+// ============================================
 
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+export function generateInvoicePDF(invoice: Invoice): Blob {
+  const doc = new jsPDF();
+  const t = invoiceTranslations[invoice.language];
+  const settings = getInvoiceSettingsSync();
 
-    return { success: true };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to save invoice settings',
-    };
+  // Page setup
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  let yPos = margin;
+
+  // Header with company info
+  doc.setFillColor(213, 170, 100); // Gold color
+  doc.rect(0, 0, pageWidth, 40, 'F');
+
+  // Company name
+  doc.setTextColor(75, 40, 24); // Dark brown
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text(settings?.company_name || 'Mimiko Studio', margin, 20);
+
+  // Company details
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  yPos = 28;
+  if (settings?.company_address) {
+    doc.text(settings.company_address, margin, yPos);
+    yPos += 5;
   }
+  if (settings?.company_phone) {
+    doc.text(`Phone: ${settings.company_phone}`, margin, yPos);
+  }
+  if (settings?.company_email) {
+    doc.text(`Email: ${settings.company_email}`, pageWidth - margin, 28, { align: 'right' });
+  }
+
+  // Invoice title
+  yPos = 50;
+  doc.setTextColor(75, 40, 24);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t.invoice, pageWidth - margin, yPos, { align: 'right' });
+
+  // Invoice details
+  yPos += 10;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${t.invoice_number}: ${invoice.invoice_number}`, pageWidth - margin, yPos, { align: 'right' });
+  yPos += 5;
+  doc.text(`${t.date}: ${new Date(invoice.issued_date).toLocaleDateString()}`, pageWidth - margin, yPos, { align: 'right' });
+  yPos += 5;
+  doc.text(`${t.due_date}: ${new Date(invoice.due_date).toLocaleDateString()}`, pageWidth - margin, yPos, { align: 'right' });
+
+  // Bill To and Ship To
+  yPos += 15;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t.bill_to, margin, yPos);
+  doc.text(t.ship_to, pageWidth / 2 + 10, yPos);
+
+  yPos += 5;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  // Bill to details
+  doc.text(invoice.customer_name, margin, yPos);
+  yPos += 5;
+  doc.text(invoice.customer_email, margin, yPos);
+  yPos += 5;
+  doc.text(invoice.customer_phone, margin, yPos);
+  yPos += 5;
+  
+  // Split billing address into lines
+  const billingLines = doc.splitTextToSize(invoice.billing_address, pageWidth / 2 - margin - 10);
+  doc.text(billingLines, margin, yPos);
+  
+  // Ship to details
+  yPos -= billingLines.length * 5 - 15;
+  doc.text(invoice.customer_name, pageWidth / 2 + 10, yPos);
+  yPos += 5;
+  const shippingLines = doc.splitTextToSize(invoice.shipping_address, pageWidth / 2 - margin - 10);
+  doc.text(shippingLines, pageWidth / 2 + 10, yPos);
+
+  // Items table
+  yPos += shippingLines.length * 5 + 15;
+  
+  const tableData = invoice.items.map((item, index) => {
+    const productName = invoice.language === 'hi' && item.product_name_hi
+      ? item.product_name_hi
+      : invoice.language === 'gu' && item.product_name_gu
+      ? item.product_name_gu
+      : item.product_name;
+
+    return [
+      index + 1,
+      productName,
+      item.quantity,
+      `₹${item.unit_price.toFixed(2)}`,
+      `₹${item.total_price.toFixed(2)}`,
+    ];
+  });
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [[t.item, t.quantity, t.price, t.total]],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [213, 170, 100],
+      textColor: [75, 40, 24],
+      fontStyle: 'bold',
+    },
+    styles: {
+      fontSize: 10,
+      cellPadding: 5,
+    },
+    columnStyles: {
+      0: { cellWidth: 15 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 25, halign: 'center' },
+      3: { cellWidth: 35, halign: 'right' },
+      4: { cellWidth: 35, halign: 'right' },
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  // Totals
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  const rightColumnX = pageWidth - margin - 60;
+  
+  doc.text(`${t.subtotal}:`, rightColumnX, yPos);
+  doc.text(`₹${invoice.subtotal.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+  yPos += 6;
+  
+  if (invoice.tax_amount > 0) {
+    doc.text(`${t.tax}:`, rightColumnX, yPos);
+    doc.text(`₹${invoice.tax_amount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 6;
+  }
+  
+  if (invoice.discount_amount > 0) {
+    doc.text(`${t.discount}:`, rightColumnX, yPos);
+    doc.text(`-₹${invoice.discount_amount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 6;
+  }
+  
+  if (invoice.shipping_charges > 0) {
+    doc.text(`${t.shipping}:`, rightColumnX, yPos);
+    doc.text(`₹${invoice.shipping_charges.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 6;
+  }
+  
+  yPos += 2;
+  doc.setDrawColor(213, 170, 100);
+  doc.line(rightColumnX, yPos, pageWidth - margin, yPos);
+  yPos += 6;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(`${t.grand_total}:`, rightColumnX, yPos);
+  doc.text(`₹${invoice.total_amount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+
+  // Payment info
+  yPos += 15;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${t.payment_method}:`, margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(invoice.payment_method, margin + 40, yPos);
+  
+  yPos += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${t.payment_status}:`, margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  const statusText = t[invoice.payment_status as keyof InvoiceTranslation] || invoice.payment_status;
+  doc.text(statusText, margin + 40, yPos);
+
+  // Notes
+  if (invoice.notes) {
+    yPos += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${t.notes}:`, margin, yPos);
+    yPos += 5;
+    doc.setFont('helvetica', 'normal');
+    const notesLines = doc.splitTextToSize(invoice.notes, pageWidth - 2 * margin);
+    doc.text(notesLines, margin, yPos);
+  }
+
+  // Terms
+  if (invoice.terms) {
+    yPos += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${t.terms_and_conditions}:`, margin, yPos);
+    yPos += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const termsLines = doc.splitTextToSize(invoice.terms, pageWidth - 2 * margin);
+    doc.text(termsLines, margin, yPos);
+  }
+
+  // Footer
+  const footerY = doc.internal.pageSize.getHeight() - 20;
+  doc.setDrawColor(213, 170, 100);
+  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(107, 62, 40);
+  doc.text(t.thank_you, pageWidth / 2, footerY, { align: 'center' });
+
+  return doc.output('blob');
 }
 
-/**
- * Get invoice settings
- */
-export async function getInvoiceSettings(): Promise<InvoiceSettings> {
-  try {
-    const { data: settings } = await supabase
-      .from('site_settings')
-      .select('setting_value')
-      .eq('setting_key', 'invoice_settings')
-      .single();
+// Sync version for PDF generation (settings should be cached)
+function getInvoiceSettingsSync(): InvoiceSettings | null {
+  // This is a simplified version - in production, you'd cache settings
+  return {
+    id: '',
+    invoice_prefix: 'INV',
+    next_invoice_number: 1,
+    default_tax_rate: 0,
+    default_shipping_charges: 0,
+    default_payment_terms: '',
+    default_notes: '',
+    default_terms: '',
+    default_language: 'en',
+    company_name: 'Mimiko Studio',
+    company_address: '',
+    company_phone: '',
+    company_email: '',
+    updated_at: '',
+  };
+}
 
-    if (settings) {
-      try {
-        return JSON.parse(settings.setting_value);
-      } catch (e) {
-        console.error('Failed to parse invoice settings:', e);
-      }
-    }
+export function downloadInvoicePDF(invoice: Invoice): void {
+  const pdfBlob = generateInvoicePDF(invoice);
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${invoice.invoice_number}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
-    return defaultInvoiceSettings;
-  } catch (error) {
-    console.error('Error fetching invoice settings:', error);
-    return defaultInvoiceSettings;
+export function printInvoicePDF(invoice: Invoice): void {
+  const pdfBlob = generateInvoicePDF(invoice);
+  const url = URL.createObjectURL(pdfBlob);
+  const printWindow = window.open(url);
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   }
 }
