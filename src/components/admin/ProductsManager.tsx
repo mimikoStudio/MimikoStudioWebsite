@@ -132,13 +132,20 @@ export default function ProductsManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate stock_quantity
+    const stockQty = parseInt(formData.stock_quantity);
+    if (isNaN(stockQty) || stockQty < 0) {
+      alert('❌ Stock quantity must be a non-negative number');
+      return;
+    }
+    
     const productData = {
       name: formData.name,
       slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
       description: formData.description,
       price: parseFloat(formData.price),
       sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
-      stock_quantity: parseInt(formData.stock_quantity),
+      stock_quantity: stockQty,
       category_id: formData.category_id || null,
       material: formData.material,
       sizes: formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
