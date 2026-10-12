@@ -15,6 +15,7 @@ import CategoriesManager from '../../components/admin/CategoriesManager';
 import SiteSettingsManager from '../../components/admin/SiteSettingsManager';
 import OrdersManager from '../../components/admin/OrdersManager';
 import ReportsDashboard from '../../components/admin/ReportsDashboard';
+import PremiumDashboard from '../../components/admin/PremiumDashboard';
 import HeroBannerManager from '../../components/admin/HeroBannerManager';
 import GalleryManager from '../../components/admin/GalleryManager';
 import CollectionsManager from '../../components/admin/CollectionsManager';
@@ -131,7 +132,7 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8">
         <AutoSetup />
-        {activeTab === 'overview' && <OverviewTab />}
+        {activeTab === 'overview' && <PremiumDashboard />}
         {activeTab === 'products' && <ProductsManager />}
         {activeTab === 'categories' && <CategoriesManager />}
         {activeTab === 'hero-banners' && <HeroBannerManager />}
@@ -152,117 +153,3 @@ export default function AdminDashboard() {
 }
 
 // Database Setup Screen
-// Overview Tab
-function OverviewTab() {
-  const { stats, loading } = useDashboardStats();
-  const { inquiries } = useInquiries();
-  const { appointments } = useAppointments();
-  const { products } = useProducts({ limit: 5 });
-
-  const statsCards = [
-    { label: 'Total Products', value: stats.totalProducts, icon: '🛍️', color: 'bg-gold/10 text-gold' },
-    { label: 'Active Inquiries', value: stats.pendingInquiries, icon: '💌', color: 'bg-blush/20 text-blush' },
-    { label: 'Pending Appointments', value: stats.newAppointments, icon: '📅', color: 'bg-sage/10 text-sage' },
-    { label: 'Total Orders', value: stats.totalOrders, icon: '📦', color: 'bg-rose/10 text-rose' },
-  ];
-
-  if (loading) {
-    return <div className="flex justify-center py-12"><div className="spinner-luxury" /></div>;
-  }
-
-  return (
-    <div>
-      <h2 className="text-2xl font-heading text-chocolate mb-6">📊 Dashboard Overview</h2>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {statsCards.map((stat, i) => (
-          <div key={i} className="bg-pearl border border-beige/20 rounded-sm p-6">
-            <div className={`w-10 h-10 rounded-full ${stat.color} flex items-center justify-center mb-4 text-xl`}>
-              {stat.icon}
-            </div>
-            <p className="text-3xl font-heading font-semibold text-chocolate">{stat.value}</p>
-            <p className="text-xs font-label tracking-wider uppercase text-coffee/50 mt-1">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Inquiries */}
-      {inquiries.length > 0 && (
-        <div className="bg-pearl border border-beige/20 rounded-sm p-6 mb-8">
-          <h3 className="font-heading text-lg font-medium text-chocolate mb-4">💌 Recent Inquiries</h3>
-          <div className="space-y-3">
-            {inquiries.slice(0, 5).map(inquiry => (
-              <div key={inquiry.id} className="flex items-center justify-between p-3 bg-ivory rounded-sm">
-                <div>
-                  <p className="text-sm font-medium text-chocolate">{inquiry.customer_name}</p>
-                  <p className="text-xs text-coffee/50">{inquiry.reference_number} • {inquiry.product_type}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-sm ${
-                  inquiry.status === 'new' ? 'bg-gold/10 text-gold' :
-                  inquiry.status === 'under_review' ? 'bg-sky/10 text-sky' :
-                  'bg-sage/10 text-sage'
-                }`}>
-                  {inquiry.status.replace('_', ' ')}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Appointments */}
-      {appointments.length > 0 && (
-        <div className="bg-pearl border border-beige/20 rounded-sm p-6 mb-8">
-          <h3 className="font-heading text-lg font-medium text-chocolate mb-4">📅 Upcoming Appointments</h3>
-          <div className="space-y-3">
-            {appointments.slice(0, 5).map(apt => (
-              <div key={apt.id} className="flex items-center justify-between p-3 bg-ivory rounded-sm">
-                <div>
-                  <p className="text-sm font-medium text-chocolate">{apt.customer_name}</p>
-                  <p className="text-xs text-coffee/50">{apt.appointment_date} at {apt.start_time}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-sm ${
-                  apt.status === 'requested' ? 'bg-gold/10 text-gold' :
-                  apt.status === 'confirmed' ? 'bg-sage/10 text-sage' :
-                  'bg-coffee/10 text-coffee'
-                }`}>
-                  {apt.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Products */}
-      {products.length > 0 && (
-        <div className="bg-pearl border border-beige/20 rounded-sm p-6">
-          <h3 className="font-heading text-lg font-medium text-chocolate mb-4">🛍️ Recent Products</h3>
-          <div className="space-y-3">
-            {products.slice(0, 5).map(product => (
-              <div key={product.id} className="flex items-center justify-between p-3 bg-ivory rounded-sm">
-                <div>
-                  <p className="text-sm font-medium text-chocolate">{product.name}</p>
-                  <p className="text-xs text-coffee/50">₹{product.price} • Stock: {product.stock_quantity}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-sm ${
-                  product.is_published ? 'bg-sage/10 text-sage' : 'bg-coffee/10 text-coffee'
-                }`}>
-                  {product.is_published ? 'Published' : 'Draft'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {inquiries.length === 0 && appointments.length === 0 && products.length === 0 && (
-        <div className="text-center py-12 bg-pearl border border-beige/20 rounded-sm">
-          <p className="text-coffee/40 mb-4">No data yet. Start by adding products!</p>
-          <p className="text-sm text-coffee/50">Go to the Products tab to add your first product.</p>
-        </div>
-      )}
-    </div>
-  );
-}
